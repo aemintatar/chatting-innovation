@@ -8,9 +8,9 @@ logging.basicConfig(level=logging.ERROR)
 
 MODEL = st.secrets['MODEL'] # Specifies the Google Gemini model to be used by the ADK agent.
 
-APIKEY = os.secrets['APIKEY']
+APIKEY = st.secrets['APIKEY']
 
-BASEURL = os.secrets['BASEURL'] 
+BASEURL = st.secrets['BASEURL'] 
 
 APP_NAME_FOR_ADK = "Innovation Chatbot" # A unique name for your application within ADK, used for session management.
 
