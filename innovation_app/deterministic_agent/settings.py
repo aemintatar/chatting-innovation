@@ -1,17 +1,16 @@
 import os
 import logging
-from dotenv import load_dotenv
-load_dotenv('.env',override=True) # Load environment variables from a .env file. This is crucial for keeping sensitive data like API keys out of your main codebase.
+import streamlit as st
 
 # Suppress most ADK internal logs to keep the console clean during Streamlit runs.
 # You can change this to logging.INFO or logging.DEBUG for more verbose output during debugging.
 logging.basicConfig(level=logging.ERROR) 
 
-MODEL = os.getenv('MODEL_MISTRAL') # Specifies the Google Gemini model to be used by the ADK agent.
+MODEL = st.secrets('MODEL') # Specifies the Google Gemini model to be used by the ADK agent.
 
-APIKEY = os.getenv('LITELLM_APIKEY')
+APIKEY = os.secrets('APIKEY')
 
-BASEURL = os.getenv('LITELLM_URL') 
+BASEURL = os.secrets('BASEURL') 
 
 APP_NAME_FOR_ADK = "Innovation Chatbot" # A unique name for your application within ADK, used for session management.
 
