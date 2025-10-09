@@ -10,20 +10,13 @@ import os
 st.set_page_config(page_title="Innovation Application", layout="wide") # Configures the browser tab title and page layout.
 st.title("Innovation Assistant") # Main title of the app.
 st.markdown("""
-            This application (powered by Google ADK, Mistral, and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
+            This application (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
             which establishes a concordance between patents and trademarks. You can enter a *technology* to discover the *goods* and *services* it enables, 
             or input a *good* or a *service* to identify the *technologies* required for its development and market introduction. The results include a summary 
             of the goods/services or technologies, along with the strength of their associations (quantiles) derived from the patent-to-trademark concordance.
             Note: More specific queries lead to better results. For example, instead of entering “Drones,” a more focused query like “Drone Power System” or “Drone Flight Controller” can yield more accurate and meaningful associations.
             """)
                     
-# Descriptive text.
-st.divider() # A visual separator.
-
-
-
-# data (main frame)
-
 
 # 🔁 Cached data loader (runs only once per session)
 @st.cache_resource
@@ -119,7 +112,8 @@ with col1:
     key="sidebar_topic"
 )
 with col2:
-    nuts2_meta = st.session_state.get(META_NUTS2_INDEX_KEY)
+    nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
+
     country_regions = load_country_regions(nuts2_meta)
     country_options = ["-- None --"] + sorted(list(country_regions.keys()))
     country_value = st.selectbox("Country (optional)", 
@@ -153,21 +147,26 @@ for message in st.session_state[MESSAGE_HISTORY_KEY]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+
 # =========================
 # 🔹 STEP 1: Interpret and retrieve 
 # =========================
 if st.button("🔍 Retrieve Documents"):
     if not st.session_state.get("detected_topic"):
         st.warning("⚠️ Please select a topic first.")
+    elif st.session_state.get("country_code") and not st.session_state.get("selected_region"):
+        st.warning("⚠️ Please select a region as well!")
     else:
         query = st.session_state.get("user_idea_input", "")
         retrieve_documents(query)  # your function saves to st.session_state['retrieved documents']
         st.success(f"✅ {len(st.session_state['retrieved documents'])} documents retrieved.")
 
+
 # =========================
 # 🔹 STEP 2: Display & Select
 # =========================
 display_retrieved_documents()
+
 
 # =========================
 # 🔹 STEP 3: Scoring
@@ -178,6 +177,7 @@ if st.session_state.get('selected_codes'):
         st.session_state['text_to_summarize'] = text_for_summary
         st.dataframe(scored_docs)  # display scored docs as table
         st.success("✅ Documents scored successfully!")
+
 
 # =========================
 # 🔹 STEP 4: Summarize & Download
@@ -197,7 +197,7 @@ if "text_to_summarize" in st.session_state and st.session_state["text_to_summari
         )
 
 st.divider()
-st.markdown("#### 🔁 Restart Application")
+st.markdown("#### Restart Application")
 
 if st.button("Restart App"):
     # Clear all Streamlit session state variables
