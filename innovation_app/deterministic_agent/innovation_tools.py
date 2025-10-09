@@ -126,21 +126,33 @@ def summarize_documents(text) -> tuple[str, bytes]:
     country = st.session_state.get("country_code", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
 
+    user_message = f'''Summarize the following content of type {topic} which represents the most 
+        relevant documents based on the percentiles obtained from the quantiles that follows:\n\n{text}.
+        Type is {topic}.
+        If the type is technology, give your summary from the market perspective (service, good).
+        If the type is good or service, then give your summary from the technology perspective.  
+        In your repsonse state clearly your perspective.
+
+        A sample response can be of the form:
+        From the technology perspective the summary is as follows:
+        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%.
+
+        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th percentiles.
+
+        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th percentiles.
+
+        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduceThis category is based on the documents between the 20th and 40th percentiles.
+
+        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest percentiles.
+
+        '''
+
     # Generate the summary
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
             {"role": "system", "content": "You are an analytical research assistant that writes structured, concise summaries."},
-            {"role": "user", "content": f"""
-            Summarize the following text and make recommendations.
-
-            Context:
-            - Topic: {topic}
-            - Country: {country}
-            - Region: {region}
-
-            Text to summarize:{text}
-            """}
+            {"role": "user", "content": user_message}
         ],
         temperature=0.2,
     )
