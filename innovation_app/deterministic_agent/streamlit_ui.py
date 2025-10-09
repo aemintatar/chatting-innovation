@@ -119,9 +119,7 @@ with col1:
     key="sidebar_topic"
 )
 with col2:
-    META_NUTS2_INDEX_PATH = './output/nuts2.pkl'
-    nuts2_meta = load_meta(metadata_path=META_NUTS2_INDEX_PATH)
-    
+    nuts2_meta = st.session_state(META_NUTS2_INDEX_KEY)
     country_regions = load_country_regions(nuts2_meta)
     country_options = ["-- None --"] + sorted(list(country_regions.keys()))
     country_value = st.selectbox("Country (optional)", 
