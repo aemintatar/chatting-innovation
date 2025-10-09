@@ -2,7 +2,8 @@ import streamlit as st
 from settings import *
 from innovation_tools import *
 from datetime import datetime
-
+import gdown
+import os
 # =========================
 # 🔧 PAGE CONFIG
 # =========================
@@ -22,69 +23,87 @@ st.divider() # A visual separator.
 
 
 # data (main frame)
-st.markdown("#### Data Management")
-if st.button("Load Data"):
-    with st.spinner("Loading document indexes..."):
-        # Load FAISS indices
-        META_ALL_INDEX_PATH = './output/allmetadata.pkl'
 
-        FAISS_TECH_INDEX_PATH = './output/faiss_tech_index.bin'
-        META_TECH_INDEX_PATH = './output/techmetadata.pkl'
 
-        FAISS_SERVICE_INDEX_PATH = './output/faiss_service_index.bin'
-        META_SERVICE_INDEX_PATH = './output/servicemetadata.pkl'
+# 🔁 Cached data loader (runs only once per session)
+@st.cache_resource
+def load_all_data_from_drive():
+    st.write("📦 Loading document indexes...")
 
-        FAISS_GOOD_INDEX_PATH = './output/faiss_good_index.bin'
-        META_GOOD_INDEX_PATH = './output/goodmetadata.pkl'
+    # 🔹 Google Drive file IDs (replace with your real ones)
+    DRIVE_FILES = {
+        "META_ALL_INDEX_PATH": "1dIGLD4JLS8Jf_LKH-bglwPGF4-HA0eKs",  # allmetadata.pkl
+        "FAISS_TECH_INDEX_PATH": "1dVVJo7gQNVxuIEfP-Fo9g8_yFTAQ2037",
+        "META_TECH_INDEX_PATH": "17l9z2n6gmYT7RVi40NI99-NFq5OwyABE",
+        "FAISS_SERVICE_INDEX_PATH": "1yXmOlTKYbws0gPfxJ_3PtPz3jy3bhhpD",
+        "META_SERVICE_INDEX_PATH": "11_U_y1E4cwSqh1jYEXOUwEZoKa022BEA",
+        "FAISS_GOOD_INDEX_PATH": "1nQNbPvYH9hCguLuJpodnWKBI2GRXNttD",
+        "META_GOOD_INDEX_PATH": "11J-wahQa8qoKkm7FKE4rBNWJsYQecCjY",
+        "FAISS_MARKET_LQ_INDEX_PATH": "1Ur0dl3407o2h1uQyRis8ggtFurV1Nzk7",
+        "META_MARKET_LQ_INDEX_PATH": "1DypEu3UQUAlbDaM90tER8rsTLgnxxIiz",
+        "FAISS_TECH_LQ_INDEX_PATH": "11wCzPhGbRTjZRQ_SSkpaVJw_Q3e-hpAF",
+        "META_TECH_LQ_INDEX_PATH": "1cDuXTx34MxvwoUpif8YDyrrAhVretLg3",
+        "FAISS_DISTANCE_INDEX_PATH": "1qsDZVwDFIXoRLhOUeXqAUPIZKutyaRBt",
+        "META_NUTS2_INDEX_PATH": "14xU2zeR1fhajs5wot7W80JVYRY7_vKT8",
+    }
 
-        FAISS_MARKET_LQ_INDEX_PATH = './output/faiss_market_lq_index.bin'
-        META_MARKET_LQ_INDEX_PATH = './output/market_lq_metadata.pkl'
+    data_dir = "/tmp/data"
+    os.makedirs(data_dir, exist_ok=True)
+    paths = {}
 
-        FAISS_TECH_LQ_INDEX_PATH = './output/faiss_tech_lq_index.bin'
-        META_TECH_LQ_INDEX_PATH = './output/tech_lq_metadata.pkl'
+    # 🔹 Download missing files only
+    for name, file_id in DRIVE_FILES.items():
+        dest = os.path.join(data_dir, name + os.path.splitext(file_id)[0] + ".bin")  # unique filename
+        url = f"https://drive.google.com/uc?id={file_id}"
 
-        FAISS_DISTANCE_INDEX_PATH = './output/faiss_dist_index.bin'
-        META_NUTS2_INDEX_PATH = './output/nuts2.pkl'
+        if not os.path.exists(dest):
+            st.write(f"⬇️ Downloading {name}...")
+            gdown.download(url, dest, quiet=False)
 
-        all_meta = load_meta(META_ALL_INDEX_PATH)
+        paths[name] = dest
 
-        tech_index = load_index(FAISS_TECH_INDEX_PATH)
-        tech_meta = load_meta(META_TECH_INDEX_PATH)
-        
-        service_index = load_index(FAISS_SERVICE_INDEX_PATH)
-        service_meta = load_meta(META_SERVICE_INDEX_PATH)
-        
-        good_index = load_index(FAISS_GOOD_INDEX_PATH)
-        good_meta = load_meta(META_GOOD_INDEX_PATH)
-        
-        market_lq_index = load_index(index_path=FAISS_MARKET_LQ_INDEX_PATH)
-        market_lq_meta = load_meta(META_MARKET_LQ_INDEX_PATH)
-        
-        tech_lq_index = load_index(index_path=FAISS_TECH_LQ_INDEX_PATH)
-        tech_lq_meta = load_meta(META_TECH_LQ_INDEX_PATH)
-        
-        distance_index = load_index(index_path=FAISS_DISTANCE_INDEX_PATH)
-        nuts2_meta = load_meta(metadata_path=META_NUTS2_INDEX_PATH)
-        st.session_state[META_ALL_INDEX_KEY] = all_meta
+    # 🔹 Load data using your existing functions
+    st.write("⚙️ Reading data files into memory...")
+    all_meta = load_meta(paths["META_ALL_INDEX_PATH"])
+    tech_index = load_index(paths["FAISS_TECH_INDEX_PATH"])
+    tech_meta = load_meta(paths["META_TECH_INDEX_PATH"])
+    service_index = load_index(paths["FAISS_SERVICE_INDEX_PATH"])
+    service_meta = load_meta(paths["META_SERVICE_INDEX_PATH"])
+    good_index = load_index(paths["FAISS_GOOD_INDEX_PATH"])
+    good_meta = load_meta(paths["META_GOOD_INDEX_PATH"])
+    market_lq_index = load_index(paths["FAISS_MARKET_LQ_INDEX_PATH"])
+    market_lq_meta = load_meta(paths["META_MARKET_LQ_INDEX_PATH"])
+    tech_lq_index = load_index(paths["FAISS_TECH_LQ_INDEX_PATH"])
+    tech_lq_meta = load_meta(paths["META_TECH_LQ_INDEX_PATH"])
+    distance_index = load_index(paths["FAISS_DISTANCE_INDEX_PATH"])
+    nuts2_meta = load_meta(paths["META_NUTS2_INDEX_PATH"])
 
-        st.session_state[FAISS_TECH_INDEX_KEY] = tech_index
-        st.session_state[META_TECH_INDEX_KEY] = tech_meta
+    # Return all data as a dictionary
+    return {
+        "META_ALL_INDEX_KEY": all_meta,
+        "FAISS_TECH_INDEX_KEY": tech_index,
+        "META_TECH_INDEX_KEY": tech_meta,
+        "FAISS_SERVICE_INDEX_KEY": service_index,
+        "META_SERVICE_INDEX_KEY": service_meta,
+        "FAISS_GOOD_INDEX_KEY": good_index,
+        "META_GOOD_INDEX_KEY": good_meta,
+        "FAISS_MARKET_LQ_INDEX_KEY": market_lq_index,
+        "META_MARKET_LQ_INDEX_KEY": market_lq_meta,
+        "FAISS_TECH_LQ_INDEX_KEY": tech_lq_index,
+        "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
+        "FAISS_DISTANCE_INDEX_KEY": distance_index,
+        "META_NUTS2_INDEX_KEY": nuts2_meta,
+    }
 
-        st.session_state[FAISS_SERVICE_INDEX_KEY] = service_index
-        st.session_state[META_SERVICE_INDEX_KEY] = service_meta
+# 🧠 Initialize data once
+if "data_loaded" not in st.session_state:
+    with st.spinner("Loading all data from Google Drive..."):
+        data_dict = load_all_data_from_drive()
+        for k, v in data_dict.items():
+            st.session_state[k] = v
+        st.session_state["data_loaded"] = True
+        st.success("✅ Data loaded successfully!")
 
-        st.session_state[FAISS_GOOD_INDEX_KEY] = good_index
-        st.session_state[META_GOOD_INDEX_KEY] = good_meta
-
-        st.session_state[FAISS_MARKET_LQ_INDEX_KEY] = market_lq_index
-        st.session_state[META_MARKET_LQ_INDEX_KEY] = market_lq_meta
-        
-        st.session_state[FAISS_TECH_LQ_INDEX_KEY] = tech_lq_index
-        st.session_state[META_TECH_LQ_INDEX_KEY] = tech_lq_meta
-        
-        st.session_state[FAISS_DISTANCE_INDEX_KEY] = distance_index
-        st.session_state[META_NUTS2_INDEX_KEY] = nuts2_meta
-        st.success("Data Loaded!")
 
 st.divider() # A visual separator.
 st.markdown("#### Search Parameters")
