@@ -98,6 +98,7 @@ def retrieve_documents_without_location(topic,query):
     Using the query, retrieve the relevant documents.
     '''
     #query the doc fais index
+    print(query)
     if topic.lower() == 'technology':
         faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
         metadata = st.session_state.get("META_TECH_INDEX_KEY")

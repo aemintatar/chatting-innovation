@@ -138,7 +138,7 @@ if st.button("Apply Parameters"):
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
-prompt = st.text_area("Enter your product or technology idea:")
+prompt = st.text_area("Enter your product or technology idea:",key="user_idea_input")
 
 if MESSAGE_HISTORY_KEY not in st.session_state:
     st.session_state[MESSAGE_HISTORY_KEY] = []
@@ -157,9 +157,13 @@ if st.button("🔍 Retrieve Documents"):
     elif st.session_state.get("country_code") and not st.session_state.get("selected_region"):
         st.warning("⚠️ Please select a region as well!")
     else:
-        query = st.session_state.get("user_idea_input", "")
-        retrieve_documents(query)  # your function saves to st.session_state['retrieved documents']
-        st.success(f"✅ {len(st.session_state['retrieved documents'])} documents retrieved.")
+        query = st.session_state.get("user_idea_input")
+        if not query.strip():
+            st.warning("⚠️ Please enter an idea before retrieving documents.")
+        else:
+            retrieve_documents(query)
+            docs = st.session_state.get('retrieved documents', [])
+            st.success(f"✅ {len(docs)} documents retrieved.")
 
 
 # =========================
