@@ -11,7 +11,7 @@ from innovation_tools import *
 st.set_page_config(page_title="Innovation Application", layout="wide") # Configures the browser tab title and page layout.
 st.title("Innovation Assistant") # Main title of the app.
 st.markdown("""
-            This application (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
+            This APPLICATION (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
             which establishes a concordance between patents and trademarks. You can enter a *technology* to discover the *goods* and *services* it enables, 
             or input a *good* or a *service* to identify the *technologies* required for its development and market introduction. The results include a summary 
             of the goods/services or technologies, along with the strength of their associations (quantiles) derived from the patent-to-trademark concordance.
