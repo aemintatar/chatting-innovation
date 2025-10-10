@@ -43,13 +43,13 @@ def load_country_regions(metadata):
     return country_regions
 
 
-def retrieve_documents_with_location_query(topic,region_code,query):
+def retrieve_documents_with_location_query(context,region_code,query):
     '''
     Using the query and location, retrieve the relevant documents.
     Using locations LQ values filter the relevant documents.
     '''
-    #load data based on the topic
-    if topic.lower() == "technology":
+    #load data based on the context
+    if context.lower() == "technology":
         faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
         metadata = st.session_state.get("META_TECH_INDEX_KEY")
         lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
@@ -57,7 +57,7 @@ def retrieve_documents_with_location_query(topic,region_code,query):
         lq_code_variable = 'cpc'
         code_variable = 'CPC_4digit'
         label_variable = 'cpc_4digit_label'
-    elif topic.lower() =='service':
+    elif context.lower() =='service':
         faiss_index = st.session_state.get("FAISS_SERVICE_INDEX_KEY")
         metadata = st.session_state.get("META_SERVICE_INDEX_KEY")
         lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
@@ -65,7 +65,7 @@ def retrieve_documents_with_location_query(topic,region_code,query):
         lq_code_variable = 'Nice_subclass'
         code_variable = 'Nice_subclass'
         label_variable = 'Nice_subclass_label'
-    elif topic.lower() =='good':
+    elif context.lower() =='good':
         faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
         metadata = st.session_state.get("META_GOOD_INDEX_KEY")
         lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
@@ -74,7 +74,7 @@ def retrieve_documents_with_location_query(topic,region_code,query):
         code_variable = 'Nice_subclass'
         label_variable = 'Nice_subclass_label'
     else:
-        return {"status": "error", "message": f"Unsupported topic: {topic}"} 
+        return {"status": "error", "message": f"Unsupported context: {context}"} 
     
     query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
     D, I = faiss_index.search(query_emb, len(metadata))
@@ -92,19 +92,19 @@ def retrieve_documents_with_location_query(topic,region_code,query):
     lq_results = lq_results.to_dict(orient="records")[:5]
     return lq_results
 
-def retrieve_documents_with_query(topic,query):
+def retrieve_documents_with_query(context,query):
     '''
     Using the query, retrieve the relevant documents.
     '''
     #query the doc fais index
     print(query)
-    if topic.lower() == 'technology':
+    if context.lower() == 'technology':
         faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
         metadata = st.session_state.get("META_TECH_INDEX_KEY")
-    elif topic.lower() =='service': #bigger than 34
+    elif context.lower() =='service': #bigger than 34
         faiss_index = st.session_state.get("FAISS_SERVICE_INDEX_KEY")
         metadata = st.session_state.get("META_SERVICE_INDEX_KEY")
-    elif topic.lower() =='good': #less than 34
+    elif context.lower() =='good': #less than 34
         faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
         metadata = st.session_state.get("META_GOOD_INDEX_KEY")
 
@@ -121,21 +121,21 @@ def retrieve_documents() -> dict:
     '''
     Using the user input, retrieve the relevant documents.
     '''
-    topic = st.session_state.get("detected_topic",None)
+    context = st.session_state.get("detected_context",None)
     selected_region = st.session_state.get("selected_region",None)
     query = st.session_state.get("query",None)
     
     if selected_region and query:
-        print('Topic & Location & Query')
+        print('context & Location & Query')
         region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
         for region in region_list: #finds the NUTS2 code of the region
             if region['NUTS label'] == selected_region:
                 region_code = region['NUTS Code']
                 break 
-        results = retrieve_documents_with_location_query(topic,region_code,query)
+        results = retrieve_documents_with_location_query(context,region_code,query)
     else:
-        print('Topic & Query')
-        results = retrieve_documents_with_query(topic,query)
+        print('context & Query')
+        results = retrieve_documents_with_query(context,query)
     
     st.session_state['retrieved documents'] = results
 
@@ -154,13 +154,13 @@ def summarize_documents(text) -> tuple[str, bytes]:
     Summarize the provided documents and return the summary and downloadable file content.
     """
     # Collect context from Streamlit state
-    topic = st.session_state.get("detected_topic", "Not specified")
+    context = st.session_state.get("detected_context", "Not specified")
     country = st.session_state.get("country_code", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
 
-    user_message = f'''Summarize the following content of type {topic} which represents the most 
+    user_message = f'''Summarize the following content of type {context} which represents the most 
         relevant documents based on the percentiles obtained from the quantiles that follows:\n\n{text}.
-        Type is {topic}.
+        Type is {context}.
         If the type is technology, give your summary from the market perspective (service, good).
         If the type is good or service, then give your summary from the technology perspective.  
         In your repsonse state clearly your perspective.
@@ -195,7 +195,7 @@ def summarize_documents(text) -> tuple[str, bytes]:
     summary_text = (
         f"Summary Report\n"
         f"===============\n\n"
-        f"Topic: {topic}\nCountry: {country}\nRegion: {region}\n\n"
+        f"context: {context}\nCountry: {country}\nRegion: {region}\n\n"
         f"Summary:\n{summary}"
     )
     file_bytes = io.BytesIO(summary_text.encode('utf-8'))
@@ -210,24 +210,24 @@ def scoring_documents() -> dict:
     '''
     metadata = st.session_state.get("META_ALL_INDEX_KEY")
     selected_codes = st.session_state.get('selected_codes')
-    topic = st.session_state.get("detected_topic")
+    context = st.session_state.get("detected_context")
     
-    topic = topic.lower()
+    context = context.lower()
     selected_meta = []
 
-    if topic == 'technology':
+    if context == 'technology':
         code_variable = 'CPC_4digit'
         for meta in metadata:
             if meta[code_variable] in selected_codes:
                 selected_meta.append(meta)
     
-    if topic == 'service':
+    if context == 'service':
         code_variable = 'Nice_subclass'
         for meta in metadata:
             if meta[code_variable] in selected_codes:
                 selected_meta.append(meta)
 
-    if topic == 'good':
+    if context == 'good':
         code_variable = 'Nice_subclass'
         for meta in metadata:
             if meta[code_variable] in selected_codes:
@@ -245,34 +245,47 @@ def scoring_documents() -> dict:
     selected_meta_df['Quantiles'] = np.round(quantiles,2)
     selected_meta_df = selected_meta_df.sort_values(by='Quantiles',ascending=False)
 
-    if topic == 'technology':
+    if context == 'technology':
         drop_columns = ['CPC_4digit','CPC_4digit_label_cleaned']
-        text_df = pd.DataFrame(selected_meta_df['Nice_subclass_keyword'] + " " + selected_meta_df['Nice_subclass_label_cleaned'])
-    if topic in ['good','service']:
+    if context in ['good','service']:
         drop_columns = ['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned']
-        text_df = selected_meta_df[['CPC_4digit_label_cleaned']]
     
-
     results = selected_meta_df.drop(columns=drop_columns)
-    #results = results.to_dict(orient='records')
+
+    return results
+
+def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filters scored DataFrame based on the percentile set in session state.
+    """
+    percentile = st.session_state.get('percentile_cutoff', 0.9)
+    context = st.session_state.get("detected_context")
+    
+    if 'Quantiles' not in results_df.columns:
+        raise ValueError("DataFrame must have a 'Quantiles' column")
+    
+    filtered_df = results_df[results_df['Quantiles'] >= percentile]
+
+    if context.lower() == 'technology':
+        text_df = pd.DataFrame(filtered_df['Nice_subclass_keyword'] + " " + filtered_df['Nice_subclass_label_cleaned'])
+    if context.lower() in ['good','service']:
+        text_df = filtered_df[['CPC_4digit_label_cleaned']]
+    print(f'{context}')
     text_results = text_df.to_dict(orient='records')
-
-    #st.session_state['text_to_summarize']=text_results
-
-    return results,text_results
+    return text_results
 
 
 def selected_codes(selected_codes:list) -> dict:
     '''
     Gets from the prompt the list of codes entered by the user to filter the retrieved documents.'''
     results = st.session_state.get('retrieved documents')
-    topic = st.session_state.get("detected_topic")
+    context = st.session_state.get("detected_context")
     
-    if topic.lower() == 'technology':
+    if context.lower() == 'technology':
         code_variable = 'CPC_4digit'
-    elif topic.lower() == 'service':
+    elif context.lower() == 'service':
         code_variable = 'Nice_subclass'
-    elif topic.lower() == 'good':
+    elif context.lower() == 'good':
         code_variable = 'Nice_subclass'
 
     if selected_codes:
@@ -289,8 +302,7 @@ def selected_codes(selected_codes:list) -> dict:
 
 def display_retrieved_documents():
     docs = st.session_state.get('retrieved documents', [])
-    topic = st.session_state.get('detected_topic','technology').lower()
-    query = st.session_state.get("query")
+    context = st.session_state.get('detected_context','technology').lower()
 
     if not docs:
         st.info("No documents retrieved yet. Click 'Retrieve Documents' first.")
@@ -299,44 +311,38 @@ def display_retrieved_documents():
     st.markdown("##### Select documents to keep:")
 
     selected_codes_list = []
-    if query:
-        for idx, doc in enumerate(docs):
-            # Determine which field to use for selection
-            code_field = 'CPC_4digit' if topic == 'technology' else 'Nice_subclass'
-            code = doc[code_field]
+    for idx, doc in enumerate(docs):
+        # Determine which field to use for selection
+        code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
+        selected_fileds = ['CPC_4digit_label_cleaned'] if context == 'technology' else ['Nice_subclass_keyword','Nice_subclass_label']
+        code = doc[code_field]
 
-            # Unique checkbox key
-            checkbox_key = f"doc_checkbox_{idx}_{code}"
+        # Unique checkbox key
+        checkbox_key = f"doc_checkbox_{idx}_{code}"
 
-            # Display checkbox with document info
+        if context == 'technology':
+        # Display checkbox with document info
             checked = st.checkbox(
-                label=f"{code_field}:{code} | "  f"Nice_subclass_keyword:{doc.get('Nice_subclass_keyword','')} | "  f"Nice_subclass_label:{doc.get('Nice_subclass_label_cleaned')} |" f"CPC_4digit_label:{doc.get('CPC_4digit_label_cleaned','')}",
+                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}",
                 key=checkbox_key
             )
-            if checked:
-                selected_codes_list.append(code)
-    else:
-        for idx, doc in enumerate(docs):
-            code_field = 'nuts2_2'
-            code = doc[code_field]
-            
-            # Unique checkbox key
-            checkbox_key = f"doc_checkbox_{idx}_{code}"
-
-            # Display checkbox with document info
+        else:
             checked = st.checkbox(
-                label=f"{code_field}:{code} | "  f"Region 1:{doc.get('nuts2_1','')} | "  f"Region 2:{doc.get('nuts2_2')} |" f"Distance (in km.):{doc.get('distance_km','')}",
-                key=checkbox_key
-            )
-            if checked:
-                selected_codes_list.append(code)
+            label=f"**{code_field}**: {code} \n **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')} \n **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}",
+            key=checkbox_key
+        )
+        if checked:
+            selected_codes_list.append(code)
 
 
 
     # Confirm selection button
     if st.button("✅ Confirm Selected Documents"):
-        selected_codes(selected_codes_list)
-        st.success(f"{len(selected_codes_list)} documents selected for scoring. Continue with scoring!")
+        if selected_codes_list:
+            selected_codes(selected_codes_list)
+            st.success(f"{len(selected_codes_list)} documents selected for scoring. Continue with scoring!")
+        else:
+            st.warning("⚠️ Please make at least one selection or restart!")
 
 
 

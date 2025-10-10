@@ -104,16 +104,16 @@ if "data_loaded" not in st.session_state:
 
 st.divider() # A visual separator.
 st.markdown("#### Search Parameters")
-#  Topic / country / region selectors (main frame)
+#  context / country / region selectors (main frame)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    topic_value = st.selectbox(
-    "Topic",
+    context_value = st.selectbox(
+    "context",
     ["-- None --", "Technology", "Service", "Good"],
     index=0,
-    key="sidebar_topic"
+    key="sidebar_context"
 )
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
@@ -135,7 +135,7 @@ with col3:
                           key="sidebar_region")
 # Apply context button
 if st.button("Apply Parameters"):
-    st.session_state["detected_topic"] = None if topic_value.startswith("--") else topic_value
+    st.session_state["detected_context"] = None if context_value.startswith("--") else context_value.lower()
     st.session_state["country_code"] = None if country_value.startswith("--") else country_value
     st.session_state["selected_region"] = None if region_value.startswith("--") else region_value
     st.success("Parameters applied!")
@@ -158,8 +158,8 @@ for message in st.session_state[MESSAGE_HISTORY_KEY]:
 # 🔹 STEP 1: Interpret and retrieve 
 # =========================
 if st.button("🔍 Retrieve Documents"):
-    if not st.session_state.get("detected_topic"):
-        st.warning("⚠️ Please select a topic first.")
+    if not st.session_state.get("detected_context"):
+        st.warning("⚠️ Please select a context first.")
     elif st.session_state.get("country_code") and not st.session_state.get("selected_region"):
         st.warning("⚠️ Please select a region as well!")
     else:
@@ -184,17 +184,40 @@ display_retrieved_documents()
 # =========================
 if st.session_state.get('selected_codes'):
     if st.button("📊 Score Selected Documents"):
-        scored_docs, text_for_summary = scoring_documents()  # scoring_tool saves results to session_state['text_to_summarize']
-        st.session_state['text_to_summarize'] = text_for_summary
+        scored_docs = scoring_documents()  # scoring_tool saves results to session_state['text_to_summarize']
         st.dataframe(scored_docs)  # display scored docs as table
         st.success("✅ Documents scored successfully!")
+        st.session_state['scored_docs'] = scored_docs
+
+# =========================
+# 🔹 STEP 4: Truncation using Percentailes
+# =========================
+
+# Default percentile 0.9 (top 10%)
+if 'percentile_cutoff' not in st.session_state:
+    st.session_state['percentile_cutoff'] = 0.9
+if 'scored_docs' in st.session_state:
+    percentile_cutoff = st.slider(
+        "Select percentile cutoff (top X% of scored documents)",
+        min_value=0.0,
+        max_value=1.0,
+        value=st.session_state['percentile_cutoff'],
+        step=0.01
+    ) 
+    if st.button("Apply Percentile Cutoff"):
+        st.session_state['percentile_cutoff'] = percentile_cutoff
+        st.success("Percentile Cutoff applied! You can summarize the truncated list of documents!")
+        st.session_state['ready_for_summary'] = True
 
 
 # =========================
 # 🔹 STEP 4: Summarize & Download
 # =========================
-if "text_to_summarize" in st.session_state and st.session_state["text_to_summarize"]:
+if "ready_for_summary" in st.session_state and st.session_state["ready_for_summary"]:
     if st.button("🧾 Summarize"):
+        scored_docs = st.session_state.get("scored_docs")
+        text_for_summary = filter_by_percentile_session(scored_docs)
+        st.session_state['text_to_summarize'] = text_for_summary
         summary, summary_file = summarize_documents(st.session_state["text_to_summarize"])
         st.session_state["summary"] = summary
         st.success("Summary generated successfully!")
