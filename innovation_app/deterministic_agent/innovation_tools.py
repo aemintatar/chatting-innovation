@@ -42,6 +42,55 @@ def load_country_regions(metadata):
             country_regions.setdefault(country, []).append(label)
     return country_regions
 
+def get_top_lq():
+    context = st.session_state.get("detected_context").lower()
+    selected_region = st.session_state.get('selected_region')
+    region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
+    
+    if context == 'technology':
+        lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+        lq_variable = 'tech_lq'
+        lq_code_variable = 'cpc'
+        label_variable = 'cpc_4digit_label'
+    else:
+        lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
+        lq_variable = 'market_lq'
+        lq_code_variable = 'Nice_subclass'
+        label_variable = 'Nice_subclass_label'
+    if selected_region:
+        for region in region_list: #finds the NUTS2 code of the region
+            if region['NUTS label'] == selected_region:
+                region_code = region['NUTS Code']
+                break 
+        filtered_lq_metadata = pd.DataFrame([meta for meta in lq_metadata if meta['nuts2_code'] == region_code])
+        filtered_lq_metadata = filtered_lq_metadata[[lq_code_variable,label_variable,lq_variable]]
+        specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1]
+        specialization_size = specialization_lq_metadata.shape[0]
+        if specialization_size > 3:
+            st.markdown(f" Here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
+            return specialization_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
+        elif specialization_size<=3 and specialization_size>0:
+            st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
+            return specialization_lq_metadata.sort_values(lq_variable,ascending=False)
+        else:
+            st.markdown(f" There are no specializations (LQ >1) in {st.session_state.get('selected_region')}, but the closest (highest LQ) ones are: ")
+            return filtered_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
+    else:
+        lq_metadata = pd.DataFrame(lq_metadata)
+        lq_metadata = lq_metadata[['country_en','nuts2',lq_code_variable,label_variable,lq_variable]]
+        specialization_lq_metadata = lq_metadata[lq_metadata[lq_variable]>1]
+        specialization_size = specialization_lq_metadata.shape[0]
+        if specialization_size > 3:
+            st.markdown(f"You have not selected a region. Here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in Europe:")
+            return specialization_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
+        elif specialization_size<=3 and specialization_size>0:
+            st.markdown(f"You have not selected a region.. There are only {specialization_size} {st.session_state.get('detected_context')} specializations (LQ >1) in Europe:")
+            return specialization_lq_metadata.sort_values(lq_variable,ascending=False)
+        else:
+            st.markdown(f"You have not selected a region. There are no specializations (LQ >1) in Europe, but the closest (highest LQ) ones are: ")
+            return lq_metadata.sort_values(lq_variable,ascending=False).head(3)
+
+
 
 def retrieve_documents_with_location_query(context,region_code,query):
     '''

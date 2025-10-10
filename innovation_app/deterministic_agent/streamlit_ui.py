@@ -139,6 +139,10 @@ if st.button("Apply Parameters"):
     st.session_state["country_code"] = None if country_value.startswith("--") else country_value
     st.session_state["selected_region"] = None if region_value.startswith("--") else region_value
     st.success("Parameters applied!")
+    df = get_top_lq()
+    st.dataframe(df)
+
+
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
