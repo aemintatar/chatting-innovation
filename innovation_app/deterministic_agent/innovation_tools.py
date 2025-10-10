@@ -1,15 +1,13 @@
-from typing import Dict, Any, Optional
-
+import io
+import os
+import faiss
+import numpy as np
+import pandas as pd
+import streamlit as st
 from settings import *
 from openai import OpenAI
-import faiss
-import os
-import io
-import streamlit as st
-import numpy as np
-from sentence_transformers import SentenceTransformer
 from scipy.stats import rankdata
-import pandas as pd
+from sentence_transformers import SentenceTransformer
 
 # Auxiliary Tools
 client = OpenAI(base_url=BASEURL, api_key=APIKEY)
@@ -43,11 +41,15 @@ def load_country_regions(metadata):
         if country and label:
             country_regions.setdefault(country, []).append(label)
     return country_regions
-    
-def retrieve_documents_with_location(region_code,topic,query):
+
+
+
+
+
+def retrieve_documents_with_location(topic,region_code,query):
     '''
-    Using the query, retrieve the relevant documents.
-    Assumes location is present. Using locations LQ values filter the relevant documents.
+    Using the query and location, retrieve the relevant documents.
+    Using locations LQ values filter the relevant documents.
     '''
     #load data based on the topic
     if topic.lower() == "technology":
@@ -64,7 +66,7 @@ def retrieve_documents_with_location(region_code,topic,query):
         lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
-        code_variable = 'Nice subclass'
+        code_variable = 'Nice_subclass'
         label_variable = 'Nice_subclass_label'
     elif topic.lower() =='good':
         faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
@@ -72,7 +74,7 @@ def retrieve_documents_with_location(region_code,topic,query):
         lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
-        code_variable = 'Nice subclass'
+        code_variable = 'Nice_subclass'
         label_variable = 'Nice_subclass_label'
     else:
         return {"status": "error", "message": f"Unsupported topic: {topic}"} 
