@@ -11,7 +11,7 @@ from innovation_tools import *
 st.set_page_config(page_title="Innovation Application", layout="wide") # Configures the browser tab title and page layout.
 st.title("Innovation Assistant") # Main title of the app.
 st.markdown("""
-            This APPLICATION (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
+            This application (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
             which establishes a concordance between patents and trademarks. You can enter a *technology* to discover the *goods* and *services* it enables, 
             or input a *good* or a *service* to identify the *technologies* required for its development and market introduction. The results include a summary 
             of the goods/services or technologies, along with the strength of their associations (quantiles) derived from the patent-to-trademark concordance.
@@ -38,6 +38,7 @@ def load_all_data_from_drive():
         "FAISS_TECH_LQ_INDEX_PATH": "11wCzPhGbRTjZRQ_SSkpaVJw_Q3e-hpAF",
         "META_TECH_LQ_INDEX_PATH": "1cDuXTx34MxvwoUpif8YDyrrAhVretLg3",
         "FAISS_DISTANCE_INDEX_PATH": "1qsDZVwDFIXoRLhOUeXqAUPIZKutyaRBt",
+        "META_DISTANCE_INDEX_PATH":"1bpB9u3MtvEFtPxzmNEofHgK1ZRXudnqD",
         "META_NUTS2_INDEX_PATH": "14xU2zeR1fhajs5wot7W80JVYRY7_vKT8",
     }
 
@@ -70,6 +71,7 @@ def load_all_data_from_drive():
     tech_lq_index = load_index(paths["FAISS_TECH_LQ_INDEX_PATH"])
     tech_lq_meta = load_meta(paths["META_TECH_LQ_INDEX_PATH"])
     distance_index = load_index(paths["FAISS_DISTANCE_INDEX_PATH"])
+    distance_meta = load_meta(paths['META_DISTANCE_INDEX_PATH'])
     nuts2_meta = load_meta(paths["META_NUTS2_INDEX_PATH"])
 
     # Return all data as a dictionary
@@ -86,6 +88,7 @@ def load_all_data_from_drive():
         "FAISS_TECH_LQ_INDEX_KEY": tech_lq_index,
         "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
         "FAISS_DISTANCE_INDEX_KEY": distance_index,
+        "META_DISTANCE_INDEX_KEY" : distance_meta,
         "META_NUTS2_INDEX_KEY": nuts2_meta,
     }
 
@@ -139,7 +142,7 @@ if st.button("Apply Parameters"):
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
-prompt = st.text_area("Enter your product or technology idea:",key="user_idea_input")
+prompt = st.text_area("Enter your product or technology idea:",key="query")
 
 if MESSAGE_HISTORY_KEY not in st.session_state:
     st.session_state[MESSAGE_HISTORY_KEY] = []
@@ -147,6 +150,8 @@ if MESSAGE_HISTORY_KEY not in st.session_state:
 for message in st.session_state[MESSAGE_HISTORY_KEY]:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
+
+
 
 
 # =========================
@@ -158,11 +163,11 @@ if st.button("🔍 Retrieve Documents"):
     elif st.session_state.get("country_code") and not st.session_state.get("selected_region"):
         st.warning("⚠️ Please select a region as well!")
     else:
-        query = st.session_state.get("user_idea_input")
+        query = st.session_state.get("query")
         if not query.strip():
             st.warning("⚠️ Please enter an idea before retrieving documents.")
         else:
-            retrieve_documents(query)
+            retrieve_documents()
             docs = st.session_state.get('retrieved documents', [])
             st.success(f"✅ {len(docs)} documents retrieved.")
 
@@ -170,6 +175,7 @@ if st.button("🔍 Retrieve Documents"):
 # =========================
 # 🔹 STEP 2: Display & Select
 # =========================
+
 display_retrieved_documents()
 
 

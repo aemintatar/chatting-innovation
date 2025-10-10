@@ -43,10 +43,7 @@ def load_country_regions(metadata):
     return country_regions
 
 
-
-
-
-def retrieve_documents_with_location(topic,region_code,query):
+def retrieve_documents_with_location_query(topic,region_code,query):
     '''
     Using the query and location, retrieve the relevant documents.
     Using locations LQ values filter the relevant documents.
@@ -95,7 +92,7 @@ def retrieve_documents_with_location(topic,region_code,query):
     lq_results = lq_results.to_dict(orient="records")[:5]
     return lq_results
 
-def retrieve_documents_without_location(topic,query):
+def retrieve_documents_with_query(topic,query):
     '''
     Using the query, retrieve the relevant documents.
     '''
@@ -120,6 +117,38 @@ def retrieve_documents_without_location(topic,query):
         meta['Nice_subclass_keyword'] = meta['Nice_subclass_keyword'].replace('|',',')
     return results
 
+def retrieve_documents() -> dict:
+    '''
+    Using the user input, retrieve the relevant documents.
+    '''
+    topic = st.session_state.get("detected_topic",None)
+    selected_region = st.session_state.get("selected_region",None)
+    query = st.session_state.get("query",None)
+    
+    if selected_region and query:
+        print('Topic & Location & Query')
+        region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
+        for region in region_list: #finds the NUTS2 code of the region
+            if region['NUTS label'] == selected_region:
+                region_code = region['NUTS Code']
+                break 
+        results = retrieve_documents_with_location_query(topic,region_code,query)
+    else:
+        print('Topic & Query')
+        results = retrieve_documents_with_query(topic,query)
+    
+    st.session_state['retrieved documents'] = results
+
+    return {"status": "success", 
+            "retrieved_documents": results,
+            "next_tool" : "select_documents",
+            "message": (
+                f" I retrieved the following documents \n"
+                + f"{results}"
+            ) 
+            }  
+
+# TO BE UPDATED
 def summarize_documents(text) -> tuple[str, bytes]:
     """
     Summarize the provided documents and return the summary and downloadable file content.
@@ -256,38 +285,12 @@ def selected_codes(selected_codes:list) -> dict:
            "message":("Here are the selected documents: \n"
                       + f"{selected_results}")}
 
-def retrieve_documents(query:str) -> dict:
-    '''
-    Using the user input, retrieve the relevant documents.
-    '''
-    topic = st.session_state.get("detected_topic",None)
-    selected_region = st.session_state.get("selected_region",None)
-    
-    if selected_region:
-        region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
-        for region in region_list:
-            if region['NUTS label'] == selected_region:
-                region_code = region['NUTS Code']
-                break 
-        results = retrieve_documents_with_location(region_code,topic,query)
-    else:
-        results = retrieve_documents_without_location(topic,query)
-    
-    st.session_state['retrieved documents'] = results
-
-    return {"status": "success", 
-            "retrieved_documents": results,
-            "next_tool" : "select_documents",
-            "message": (
-                f" I retrieved the following documents \n"
-                + f"{results}"
-            ) 
-            }  
 
 
 def display_retrieved_documents():
     docs = st.session_state.get('retrieved documents', [])
     topic = st.session_state.get('detected_topic','technology').lower()
+    query = st.session_state.get("query")
 
     if not docs:
         st.info("No documents retrieved yet. Click 'Retrieve Documents' first.")
@@ -296,28 +299,44 @@ def display_retrieved_documents():
     st.markdown("##### Select documents to keep:")
 
     selected_codes_list = []
+    if query:
+        for idx, doc in enumerate(docs):
+            # Determine which field to use for selection
+            code_field = 'CPC_4digit' if topic == 'technology' else 'Nice_subclass'
+            code = doc[code_field]
 
-    for idx, doc in enumerate(docs):
-        # Determine which field to use for selection
-        code_field = 'CPC_4digit' if topic == 'technology' else 'Nice_subclass'
-        code = doc[code_field]
+            # Unique checkbox key
+            checkbox_key = f"doc_checkbox_{idx}_{code}"
 
-        # Unique checkbox key
-        checkbox_key = f"doc_checkbox_{idx}_{code}"
+            # Display checkbox with document info
+            checked = st.checkbox(
+                label=f"{code_field}:{code} | "  f"Nice_subclass_keyword:{doc.get('Nice_subclass_keyword','')} | "  f"Nice_subclass_label:{doc.get('Nice_subclass_label_cleaned')} |" f"CPC_4digit_label:{doc.get('CPC_4digit_label_cleaned','')}",
+                key=checkbox_key
+            )
+            if checked:
+                selected_codes_list.append(code)
+    else:
+        for idx, doc in enumerate(docs):
+            code_field = 'nuts2_2'
+            code = doc[code_field]
+            
+            # Unique checkbox key
+            checkbox_key = f"doc_checkbox_{idx}_{code}"
 
-        # Display checkbox with document info
-        checked = st.checkbox(
-            label=f"{code_field}:{code} | "  f"Nice_subclass_keyword:{doc.get('Nice_subclass_keyword','')} | "  f"Nice_subclass_label:{doc.get('Nice_subclass_label_cleaned')} |" f"CPC_4digit_label:{doc.get('CPC_4digit_label_cleaned','')}",
-            key=checkbox_key
-        )
-        if checked:
-            selected_codes_list.append(code)
+            # Display checkbox with document info
+            checked = st.checkbox(
+                label=f"{code_field}:{code} | "  f"Region 1:{doc.get('nuts2_1','')} | "  f"Region 2:{doc.get('nuts2_2')} |" f"Distance (in km.):{doc.get('distance_km','')}",
+                key=checkbox_key
+            )
+            if checked:
+                selected_codes_list.append(code)
+
+
 
     # Confirm selection button
     if st.button("✅ Confirm Selected Documents"):
         selected_codes(selected_codes_list)
         st.success(f"{len(selected_codes_list)} documents selected for scoring. Continue with scoring!")
-
 
 
 
