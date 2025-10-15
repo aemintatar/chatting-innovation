@@ -242,7 +242,7 @@ if "ready_for_summary" in st.session_state and st.session_state["ready_for_summa
             data=st.session_state.get("summary_file"),
             file_name=f"summary_report_{timestamp}.txt",
             mime="text/plain",
-        )
+        )    
 
 st.divider()
 st.markdown("#### Restart Application")

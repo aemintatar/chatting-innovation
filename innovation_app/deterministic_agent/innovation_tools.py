@@ -271,17 +271,23 @@ def summarize_documents(text) -> tuple[str, bytes]:
     region = st.session_state.get("selected_region", "Not specified")
 
     user_message = f'''Summarize the following content of type {context} which represents the most 
-        relevant documents based on the percentiles obtained from the quantiles that follows:\n\n{text}.
-        Type is {context}.
+        relevant documents to users query. It contains the percentiles obtained from the quantiles. 
+        Sometines, when user specifies region, they also contain LQ scores which represent the strength of the specialization
+        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field
+        that follows:\n\n
+        This is the context: {context}.
+        This is the collection of documents: {text}
         If the type is technology, give your summary from the market perspective (service, good).
         If the type is good or service, then give your summary from the technology perspective.  
         In your repsonse state clearly your perspective.
 
         A sample response can be of the form:
         From the technology perspective the summary is as follows:
-        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%.
+        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%. 
+        Moreover, the average LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
 
         2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th percentiles.
+        Even though, this field has high percentile, the avegrage LQ score is less than 1, meaning the region is not specialized in this field. 
 
         3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th percentiles.
 
@@ -407,8 +413,6 @@ def scoring_documents() -> dict:
         else:
             results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
-    
-    #results = selected_meta_df.drop(columns=drop_columns)
 
     return results
 
@@ -425,9 +429,9 @@ def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     filtered_df = results_df[results_df['Quantiles'] >= percentile]
 
     if context.lower() == 'technology':
-        text_df = pd.DataFrame(filtered_df['Nice_subclass_keyword'] + " " + filtered_df['Nice_subclass_label'])
+        text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']])
     if context.lower() in ['good','service']:
-        text_df = filtered_df[['CPC_4digit_label']]
+        text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
     text_results = text_df.to_dict(orient='records')
     return text_results
 
