@@ -110,7 +110,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     context_value = st.selectbox(
-    "context",
+    "Context",
     ["-- None --", "Technology", "Service", "Good"],
     index=0,
     key="sidebar_context"
@@ -140,7 +140,11 @@ if st.button("Apply Parameters"):
     st.session_state["selected_region"] = None if region_value.startswith("--") else region_value
     st.success("Parameters applied!")
     df = get_top_lq()
-    st.dataframe(df)
+    st.session_state['specialization'] = df
+if 'specialization' in st.session_state:
+    st.write('#### Specializations')
+    st.dataframe(st.session_state.get('specialization'))
+    
 
 
 
@@ -189,9 +193,12 @@ display_retrieved_documents()
 if st.session_state.get('selected_codes'):
     if st.button("📊 Score Selected Documents"):
         scored_docs = scoring_documents()  # scoring_tool saves results to session_state['text_to_summarize']
-        st.dataframe(scored_docs)  # display scored docs as table
-        st.success("✅ Documents scored successfully!")
+        st.success("✅ Quantiles calculated successfully!")
         st.session_state['scored_docs'] = scored_docs
+    if 'scored_docs' in st.session_state:
+        st.write("#### Documents with Quantiles")
+        st.dataframe(st.session_state.get('scored_docs'))
+
 
 # =========================
 # 🔹 STEP 4: Truncation using Percentailes
@@ -224,12 +231,15 @@ if "ready_for_summary" in st.session_state and st.session_state["ready_for_summa
         st.session_state['text_to_summarize'] = text_for_summary
         summary, summary_file = summarize_documents(st.session_state["text_to_summarize"])
         st.session_state["summary"] = summary
+        st.session_state["summary_file"] = summary_file
         st.success("Summary generated successfully!")
-
+    if 'summary' in st.session_state:
+        st.write("#### Summary")
+        st.write(st.session_state.get('summary'))
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         st.download_button(
             label="⬇️ Download Summary",
-            data=summary_file,
+            data=st.session_state.get("summary_file"),
             file_name=f"summary_report_{timestamp}.txt",
             mime="text/plain",
         )

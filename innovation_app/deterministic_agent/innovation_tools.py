@@ -90,7 +90,33 @@ def get_top_lq():
             st.markdown(f"You have not selected a region. There are no specializations (LQ >1) in Europe, but the closest (highest LQ) ones are: ")
             return lq_metadata.sort_values(lq_variable,ascending=False).head(3)
 
+def retrieve_documents_with_query(context,query):
+    '''
+    Using the query, retrieve the relevant documents.
+    '''
+    #query the doc fais index
 
+    if context.lower() == 'technology':
+        faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
+        metadata = st.session_state.get("META_TECH_INDEX_KEY")
+    elif context.lower() =='service': #bigger than 34
+        faiss_index = st.session_state.get("FAISS_SERVICE_INDEX_KEY")
+        metadata = st.session_state.get("META_SERVICE_INDEX_KEY")
+    elif context.lower() =='good': #less than 34
+        faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
+        metadata = st.session_state.get("META_GOOD_INDEX_KEY")
+
+    query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
+    D, I = faiss_index.search(query_emb, len(metadata))
+    results = []
+    for j, idx in enumerate(I[0]):  # j iterates 0..k-1
+        doc = metadata[idx]
+        doc['similarity'] = D[0][j]  # correct alignment
+        results.append(doc)
+
+    # FAISS with L2 → smaller distance = better, so we sort ascending
+    results = sorted(results, key=lambda x: x['similarity'])
+    return results[:5]
 
 def retrieve_documents_with_location_query(context,region_code,query):
     '''
@@ -105,7 +131,6 @@ def retrieve_documents_with_location_query(context,region_code,query):
         lq_variable = 'tech_lq'
         lq_code_variable = 'cpc'
         code_variable = 'CPC_4digit'
-        label_variable = 'cpc_4digit_label'
     elif context.lower() =='service':
         faiss_index = st.session_state.get("FAISS_SERVICE_INDEX_KEY")
         metadata = st.session_state.get("META_SERVICE_INDEX_KEY")
@@ -113,7 +138,6 @@ def retrieve_documents_with_location_query(context,region_code,query):
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
         code_variable = 'Nice_subclass'
-        label_variable = 'Nice_subclass_label'
     elif context.lower() =='good':
         faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
         metadata = st.session_state.get("META_GOOD_INDEX_KEY")
@@ -121,50 +145,31 @@ def retrieve_documents_with_location_query(context,region_code,query):
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
         code_variable = 'Nice_subclass'
-        label_variable = 'Nice_subclass_label'
     else:
         return {"status": "error", "message": f"Unsupported context: {context}"} 
     
     query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
     D, I = faiss_index.search(query_emb, len(metadata))
-    for i in I[0]:
-        metadata[i]['similarity'] = D[0][i]
-    metadata = [metadata[i] for i in I[0]] # this orders from best match to worst
-    metadata = pd.DataFrame(metadata)
+    results = []
+    for j, idx in enumerate(I[0]):  # j iterates 0..k-1
+        doc = metadata[idx]
+        doc['similarity'] = D[0][j]  # correct alignment
+        results.append(doc)
+
+    # FAISS with L2 → smaller distance = better, so we sort ascending
+    results = sorted(results, key=lambda x: x['similarity'])
+    metadata = pd.DataFrame(results)
+    print(metadata.head())
+    print(metadata.shape)
 
     #select based on the LQ scores the codes
     lq_results = [meta for meta in lq_metadata if meta.get('nuts2_code') == region_code]
     lq_results = pd.DataFrame(lq_results)
     lq_results = lq_results.drop(columns = ['nuts2_code','country','country_code']).rename(columns={'country_en':'country','nuts2':'region'})
-    lq_results = lq_results.merge(right=metadata,how='inner',left_on=lq_code_variable,right_on=code_variable)
-    lq_results = lq_results.sort_values(lq_variable)
+    lq_results = lq_results.merge(right=metadata,how='right',left_on=lq_code_variable,right_on=code_variable)
     lq_results = lq_results.to_dict(orient="records")[:5]
     return lq_results
 
-def retrieve_documents_with_query(context,query):
-    '''
-    Using the query, retrieve the relevant documents.
-    '''
-    #query the doc fais index
-    print(query)
-    if context.lower() == 'technology':
-        faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
-        metadata = st.session_state.get("META_TECH_INDEX_KEY")
-    elif context.lower() =='service': #bigger than 34
-        faiss_index = st.session_state.get("FAISS_SERVICE_INDEX_KEY")
-        metadata = st.session_state.get("META_SERVICE_INDEX_KEY")
-    elif context.lower() =='good': #less than 34
-        faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
-        metadata = st.session_state.get("META_GOOD_INDEX_KEY")
-
-    query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
-    D, I = faiss_index.search(query_emb, 5)
-
-    # Retrieve documents
-    results = [metadata[i] for i in I[0]]
-    for meta in results:
-        meta['Nice_subclass_keyword'] = meta['Nice_subclass_keyword'].replace('|',',')
-    return results
 
 def retrieve_documents() -> dict:
     '''
@@ -175,7 +180,6 @@ def retrieve_documents() -> dict:
     query = st.session_state.get("query",None)
     
     if selected_region and query:
-        print('context & Location & Query')
         region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
         for region in region_list: #finds the NUTS2 code of the region
             if region['NUTS label'] == selected_region:
@@ -183,7 +187,6 @@ def retrieve_documents() -> dict:
                 break 
         results = retrieve_documents_with_location_query(context,region_code,query)
     else:
-        print('context & Query')
         results = retrieve_documents_with_query(context,query)
     
     st.session_state['retrieved documents'] = results
@@ -196,6 +199,66 @@ def retrieve_documents() -> dict:
                 + f"{results}"
             ) 
             }  
+
+def display_retrieved_documents():
+    docs = st.session_state.get('retrieved documents', [])
+    context = st.session_state.get('detected_context','technology').lower()
+
+    if not docs:
+        st.info("No documents retrieved yet. Click 'Retrieve Documents' first.")
+        return
+
+    st.markdown("##### Select documents to keep:")
+
+    selected_codes_list = []
+    for idx, doc in enumerate(docs):
+        # Determine which field to use for selection
+        code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
+        code = doc[code_field]
+        selected_region = st.session_state.get("selected_region",None)
+
+        # Unique checkbox key
+        checkbox_key = f"doc_checkbox_{idx}_{code}"
+
+        if context == 'technology':
+        # Display checkbox with document info
+            if selected_region:
+                lq_variable = 'tech_lq'
+                checked = st.checkbox(
+                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                key=checkbox_key
+            )
+            else:
+                checked = st.checkbox(
+                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned')}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                key=checkbox_key
+            )
+
+        else:
+            if selected_region:
+                lq_variable = 'market_lq'
+                checked = st.checkbox(
+                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                key=checkbox_key
+            )
+            else:
+                checked = st.checkbox(
+                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                key=checkbox_key
+            )
+        if checked:
+            selected_codes_list.append(code)
+    # Confirm selection button
+    if st.button("✅ Confirm Selected Documents"):
+        if selected_codes_list:
+            selected_codes(selected_codes_list)
+            st.success(f"{len(selected_codes_list)} documents selected for scoring. Continue with scoring!")
+        else:
+            st.warning("⚠️ Please make at least one selection or restart!")
+
+
+
+
 
 # TO BE UPDATED
 def summarize_documents(text) -> tuple[str, bytes]:
@@ -260,32 +323,68 @@ def scoring_documents() -> dict:
     metadata = st.session_state.get("META_ALL_INDEX_KEY")
     selected_codes = st.session_state.get('selected_codes')
     context = st.session_state.get("detected_context")
+    selected_region = st.session_state.get("selected_region",None)
     
     context = context.lower()
     selected_meta = []
+    if selected_region:
+        if context == 'technology':
+            lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
+            lq_variable = 'market_lq'
+            lq_code_variable = 'Nice_subclass'
+            code_variable = 'CPC_4digit'
+            code_variable_other = 'Nice_subclass'
+        if context == 'service':
+            lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+            lq_variable = 'tech_lq'
+            lq_code_variable = 'cpc'
+            code_variable = 'Nice_subclass'
+            code_variable_other = 'CPC_4digit'
+        if context == 'good':
+            lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+            lq_variable = 'tech_lq'
+            lq_code_variable = 'cpc'
+            code_variable = 'Nice_subclass'
+            code_variable_other = 'CPC_4digit'
 
-    if context == 'technology':
-        code_variable = 'CPC_4digit'
         for meta in metadata:
             if meta[code_variable] in selected_codes:
                 selected_meta.append(meta)
-    
-    if context == 'service':
-        code_variable = 'Nice_subclass'
-        for meta in metadata:
-            if meta[code_variable] in selected_codes:
-                selected_meta.append(meta)
+        region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
+        for region in region_list: #finds the NUTS2 code of the region
+            if region['NUTS label'] == selected_region:
+                region_code = region['NUTS Code']
+                break 
+        lq_results = [meta for meta in lq_metadata if meta.get('nuts2_code') == region_code]
+        lq_results = pd.DataFrame(lq_results)
+        
+        selected_meta_df = pd.DataFrame(selected_meta)
+        selected_meta_df = lq_results.merge(right=selected_meta_df,how='right',left_on=lq_code_variable,right_on=code_variable_other)
+    else:
+        if context == 'technology':
+            code_variable = 'CPC_4digit'
+            for meta in metadata:
+                if meta[code_variable] in selected_codes:
+                    selected_meta.append(meta)
+        
+        if context == 'service':
+            code_variable = 'Nice_subclass'
+            for meta in metadata:
+                if meta[code_variable] in selected_codes:
+                    selected_meta.append(meta)
 
-    if context == 'good':
-        code_variable = 'Nice_subclass'
-        for meta in metadata:
-            if meta[code_variable] in selected_codes:
-                selected_meta.append(meta)
-            
-    for meta in selected_meta: # this is needed because of | in the data
-        meta['Nice_subclass_keyword'] = meta['Nice_subclass_keyword'].replace('|',',')
+        if context == 'good':
+            code_variable = 'Nice_subclass'
+            for meta in metadata:
+                if meta[code_variable] in selected_codes:
+                    selected_meta.append(meta)
+                
+        #for meta in selected_meta: # this is needed because of | in the data
+        #    meta['Nice_subclass_keyword'] = meta['Nice_subclass_keyword'].replace('|',',')
 
-    selected_meta_df = pd.DataFrame(selected_meta)
+        selected_meta_df = pd.DataFrame(selected_meta)
+
+    print(selected_meta_df.head())
     scores = selected_meta_df['Zij']
     positive_mask = scores > 0
     selected_meta_df = selected_meta_df[positive_mask]
@@ -295,11 +394,21 @@ def scoring_documents() -> dict:
     selected_meta_df = selected_meta_df.sort_values(by='Quantiles',ascending=False)
 
     if context == 'technology':
-        drop_columns = ['CPC_4digit','CPC_4digit_label_cleaned']
+        if selected_region:
+            results = selected_meta_df[['nuts2','country_en','Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
+            results = results.rename(columns={'nuts2':'region','country_en':'country','Nice_subclass_label_cleaned':'Nice_subclass_label'})
+        else:
+            results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij','Quantiles']]
+            results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
     if context in ['good','service']:
-        drop_columns = ['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned']
+        if selected_region:
+            results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
+            results = results.rename(columns={'nuts2':'region','country_en':'country','CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
+        else:
+            results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
+            results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
     
-    results = selected_meta_df.drop(columns=drop_columns)
+    #results = selected_meta_df.drop(columns=drop_columns)
 
     return results
 
@@ -316,10 +425,9 @@ def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     filtered_df = results_df[results_df['Quantiles'] >= percentile]
 
     if context.lower() == 'technology':
-        text_df = pd.DataFrame(filtered_df['Nice_subclass_keyword'] + " " + filtered_df['Nice_subclass_label_cleaned'])
+        text_df = pd.DataFrame(filtered_df['Nice_subclass_keyword'] + " " + filtered_df['Nice_subclass_label'])
     if context.lower() in ['good','service']:
-        text_df = filtered_df[['CPC_4digit_label_cleaned']]
-    print(f'{context}')
+        text_df = filtered_df[['CPC_4digit_label']]
     text_results = text_df.to_dict(orient='records')
     return text_results
 
@@ -346,54 +454,5 @@ def selected_codes(selected_codes:list) -> dict:
     return {"status":"success",
            "message":("Here are the selected documents: \n"
                       + f"{selected_results}")}
-
-
-
-def display_retrieved_documents():
-    docs = st.session_state.get('retrieved documents', [])
-    context = st.session_state.get('detected_context','technology').lower()
-
-    if not docs:
-        st.info("No documents retrieved yet. Click 'Retrieve Documents' first.")
-        return
-
-    st.markdown("##### Select documents to keep:")
-
-    selected_codes_list = []
-    for idx, doc in enumerate(docs):
-        # Determine which field to use for selection
-        code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
-        selected_fileds = ['CPC_4digit_label_cleaned'] if context == 'technology' else ['Nice_subclass_keyword','Nice_subclass_label']
-        code = doc[code_field]
-
-        # Unique checkbox key
-        checkbox_key = f"doc_checkbox_{idx}_{code}"
-
-        if context == 'technology':
-        # Display checkbox with document info
-            checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}",
-                key=checkbox_key
-            )
-        else:
-            checked = st.checkbox(
-            label=f"**{code_field}**: {code} \n **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')} \n **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}",
-            key=checkbox_key
-        )
-        if checked:
-            selected_codes_list.append(code)
-
-
-
-    # Confirm selection button
-    if st.button("✅ Confirm Selected Documents"):
-        if selected_codes_list:
-            selected_codes(selected_codes_list)
-            st.success(f"{len(selected_codes_list)} documents selected for scoring. Continue with scoring!")
-        else:
-            st.warning("⚠️ Please make at least one selection or restart!")
-
-
-
 
 
