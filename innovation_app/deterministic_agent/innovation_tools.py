@@ -422,6 +422,7 @@ def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
     percentile = st.session_state.get('percentile_cutoff', 0.9)
     context = st.session_state.get("detected_context")
+    selected_region = st.session_state.get("selected_region",None)
     
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
@@ -429,9 +430,15 @@ def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     filtered_df = results_df[results_df['Quantiles'] >= percentile]
 
     if context.lower() == 'technology':
-        text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']])
+        if selected_region:
+            text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']])
+        else:
+            text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']])
     if context.lower() in ['good','service']:
-        text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
+        if selected_region:
+            text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
+        else:
+            text_df = filtered_df[['CPC_4digit_label','Quantiles']]
     text_results = text_df.to_dict(orient='records')
     return text_results
 
