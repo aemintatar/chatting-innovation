@@ -117,7 +117,6 @@ with col1:
 )
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
-
     country_regions = load_country_regions(nuts2_meta)
     country_options = ["-- None --"] + sorted(list(country_regions.keys()))
     country_value = st.selectbox("Country (optional)", 
@@ -128,7 +127,7 @@ with col3:
     region_options = ["-- None --"]
     if country_value and not country_value.startswith("--"):
         region_options += sorted(country_regions.get(country_value, []))
-    
+    region_options = [option for option in region_options if option!='Extra-Regio NUTS 2']
     region_value = st.selectbox("Region (optional)", 
                           region_options, 
                           index=0,
@@ -217,6 +216,8 @@ if 'scored_docs' in st.session_state:
     ) 
     if st.button("Apply Percentile Cutoff"):
         st.session_state['percentile_cutoff'] = percentile_cutoff
+        scored_docs = st.session_state.get("scored_docs")
+        text_for_summary = filter_by_percentile_session(scored_docs)
         st.success("Percentile Cutoff applied! You can summarize the truncated list of documents!")
         st.session_state['ready_for_summary'] = True
 
@@ -226,17 +227,15 @@ if 'scored_docs' in st.session_state:
 # =========================
 if "ready_for_summary" in st.session_state and st.session_state["ready_for_summary"]:
     if st.button("🧾 Summarize"):
-        scored_docs = st.session_state.get("scored_docs")
-        text_for_summary = filter_by_percentile_session(scored_docs)
-        st.session_state['text_to_summarize'] = text_for_summary
-        summary, summary_file = summarize_documents(st.session_state["text_to_summarize"])
+        summary = summarize_documents()
         st.session_state["summary"] = summary
-        st.session_state["summary_file"] = summary_file
         st.success("Summary generated successfully!")
     if 'summary' in st.session_state:
         st.write("#### Summary")
         st.write(st.session_state.get('summary'))
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        summary_file = summary_download()
+        st.session_state["summary_file"] = summary_file
         st.download_button(
             label="⬇️ Download Summary",
             data=st.session_state.get("summary_file"),

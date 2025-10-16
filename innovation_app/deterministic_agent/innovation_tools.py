@@ -29,7 +29,6 @@ def load_meta(metadata_path: str = None):
         import pickle
         with open(metadata_path, "rb") as f:
             metadata = pickle.load(f)
-    
     return metadata
 
 def load_country_regions(metadata):
@@ -95,7 +94,6 @@ def retrieve_documents_with_query(context,query):
     Using the query, retrieve the relevant documents.
     '''
     #query the doc fais index
-
     if context.lower() == 'technology':
         faiss_index = st.session_state.get("FAISS_TECH_INDEX_KEY")
         metadata = st.session_state.get("META_TECH_INDEX_KEY")
@@ -106,15 +104,15 @@ def retrieve_documents_with_query(context,query):
         faiss_index = st.session_state.get("FAISS_GOOD_INDEX_KEY")
         metadata = st.session_state.get("META_GOOD_INDEX_KEY")
 
-    query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
+    query_emb = embedding_model.encode([query],convert_to_numpy=True)
     D, I = faiss_index.search(query_emb, len(metadata))
     results = []
-    for j, idx in enumerate(I[0]):  # j iterates 0..k-1
+    for j, idx in enumerate(I[0]):  
         doc = metadata[idx]
-        doc['similarity'] = D[0][j]  # correct alignment
+        doc['similarity'] = D[0][j] 
         results.append(doc)
 
-    # FAISS with L2 → smaller distance = better, so we sort ascending
+    # FAISS with L2 → smaller distance is better, so sort ascending
     results = sorted(results, key=lambda x: x['similarity'])
     return results[:5]
 
@@ -148,19 +146,17 @@ def retrieve_documents_with_location_query(context,region_code,query):
     else:
         return {"status": "error", "message": f"Unsupported context: {context}"} 
     
-    query_emb = embedding_model.encode([query],convert_to_numpy=True)  # your embedding function
+    query_emb = embedding_model.encode([query],convert_to_numpy=True) 
     D, I = faiss_index.search(query_emb, len(metadata))
     results = []
-    for j, idx in enumerate(I[0]):  # j iterates 0..k-1
+    for j, idx in enumerate(I[0]):  
         doc = metadata[idx]
-        doc['similarity'] = D[0][j]  # correct alignment
+        doc['similarity'] = D[0][j]  
         results.append(doc)
 
-    # FAISS with L2 → smaller distance = better, so we sort ascending
+    # FAISS with L2 → smaller distance is better, so sort ascending
     results = sorted(results, key=lambda x: x['similarity'])
     metadata = pd.DataFrame(results)
-    print(metadata.head())
-    print(metadata.shape)
 
     #select based on the LQ scores the codes
     lq_results = [meta for meta in lq_metadata if meta.get('nuts2_code') == region_code]
@@ -257,70 +253,6 @@ def display_retrieved_documents():
             st.warning("⚠️ Please make at least one selection or restart!")
 
 
-
-
-
-# TO BE UPDATED
-def summarize_documents(text) -> tuple[str, bytes]:
-    """
-    Summarize the provided documents and return the summary and downloadable file content.
-    """
-    # Collect context from Streamlit state
-    context = st.session_state.get("detected_context", "Not specified")
-    country = st.session_state.get("country_code", "Not specified")
-    region = st.session_state.get("selected_region", "Not specified")
-
-    user_message = f'''Summarize the following content of type {context} which represents the most 
-        relevant documents to users query. It contains the percentiles obtained from the quantiles. 
-        Sometines, when user specifies region, they also contain LQ scores which represent the strength of the specialization
-        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field
-        that follows:\n\n
-        This is the context: {context}.
-        This is the collection of documents: {text}
-        If the type is technology, give your summary from the market perspective (service, good).
-        If the type is good or service, then give your summary from the technology perspective.  
-        In your repsonse state clearly your perspective.
-
-        A sample response can be of the form:
-        From the technology perspective the summary is as follows:
-        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%. 
-        Moreover, the average LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
-
-        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th percentiles.
-        Even though, this field has high percentile, the avegrage LQ score is less than 1, meaning the region is not specialized in this field. 
-
-        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th percentiles.
-
-        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduceThis category is based on the documents between the 20th and 40th percentiles.
-
-        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest percentiles.
-
-        '''
-
-    # Generate the summary
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": "You are an analytical research assistant that writes structured, concise summaries."},
-            {"role": "user", "content": user_message}
-        ],
-        temperature=0.2,
-    )
-
-    summary = response.choices[0].message.content.replace('```', '').strip()
-
-    # Create downloadable file
-    summary_text = (
-        f"Summary Report\n"
-        f"===============\n\n"
-        f"context: {context}\nCountry: {country}\nRegion: {region}\n\n"
-        f"Summary:\n{summary}"
-    )
-    file_bytes = io.BytesIO(summary_text.encode('utf-8'))
-
-    return summary, file_bytes
-
-
 def scoring_documents() -> dict:
     '''
     Extracts from the whole index all the documents that contains the codes in the selected codes. 
@@ -390,7 +322,6 @@ def scoring_documents() -> dict:
 
         selected_meta_df = pd.DataFrame(selected_meta)
 
-    print(selected_meta_df.head())
     scores = selected_meta_df['Zij']
     positive_mask = scores > 0
     selected_meta_df = selected_meta_df[positive_mask]
@@ -421,26 +352,96 @@ def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     Filters scored DataFrame based on the percentile set in session state.
     """
     percentile = st.session_state.get('percentile_cutoff', 0.9)
-    context = st.session_state.get("detected_context")
-    selected_region = st.session_state.get("selected_region",None)
     
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
     
     filtered_df = results_df[results_df['Quantiles'] >= percentile]
 
+    st.session_state['filtered_docs'] = filtered_df
+    return filtered_df
+
+
+def summarize_documents() -> tuple[str, bytes]:
+    """
+    Summarize the provided documents and return the summary and downloadable file content.
+    """
+    # Collect context from Streamlit state
+    context = st.session_state.get("detected_context", "Not specified")
+    country = st.session_state.get("country_code", "Not specified")
+    region = st.session_state.get("selected_region", "Not specified")
+    filtered_df = st.session_state.get("filtered_docs")
+    
+    #create the user text
     if context.lower() == 'technology':
-        if selected_region:
-            text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']])
+        if region:
+            text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']]
         else:
-            text_df = pd.DataFrame(filtered_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']])
+            text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']]
     if context.lower() in ['good','service']:
-        if selected_region:
+        if region:
             text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
         else:
             text_df = filtered_df[['CPC_4digit_label','Quantiles']]
-    text_results = text_df.to_dict(orient='records')
-    return text_results
+    text = text_df.to_dict(orient='records')
+
+
+    user_message = f'''Summarize the following content of type {context} which represents the most 
+        relevant documents to users query. It contains the percentiles obtained from the quantiles. 
+        Sometines, when user specifies region, they also contain LQ scores which represent the strength of the specialization
+        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field
+        that follows:\n\n
+        This is the context: {context}.
+        This is the collection of documents: {text}
+        If the type is technology, give your summary from the market perspective (service, good).
+        If the type is good or service, then give your summary from the technology perspective.  
+        In your repsonse state clearly your perspective.
+
+        A sample response can be of the form:
+        From the technology perspective the summary is as follows:
+        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%. 
+        Moreover, the average LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
+
+        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th percentiles.
+        Even though, this field has high percentile, the avegrage LQ score is less than 1, meaning the region is not specialized in this field. 
+
+        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th percentiles.
+
+        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduceThis category is based on the documents between the 20th and 40th percentiles.
+
+        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest percentiles.
+
+        '''
+
+    # Generate the summary
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[
+            {"role": "system", "content": "You are an analytical research assistant that writes structured, concise summaries."},
+            {"role": "user", "content": user_message}
+        ],
+        temperature=0.2,
+    )
+
+    summary = response.choices[0].message.content.replace('```', '').strip()
+    st.session_state['summary'] = summary
+    return summary
+
+def summary_download():
+    context = st.session_state.get("detected_context", "Not specified")
+    country = st.session_state.get("country_code", "Not specified")
+    region = st.session_state.get("selected_region", "Not specified")
+    summary = st.session_state.get("summary")
+    # Create downloadable file
+    summary_text = (
+        f"Summary Report\n"
+        f"===============\n\n"
+        f"context: {context}\nCountry: {country}\nRegion: {region}\n\n"
+        f"Summary:\n{summary}"
+    )
+    file_bytes = io.BytesIO(summary_text.encode('utf-8'))
+
+    return file_bytes
 
 
 def selected_codes(selected_codes:list) -> dict:
