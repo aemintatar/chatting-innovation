@@ -347,7 +347,7 @@ def scoring_documents() -> dict:
 
     return results
 
-def filter_by_percentile_session(results_df: pd.DataFrame) -> pd.DataFrame:
+def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
     Filters scored DataFrame based on the percentile set in session state.
     """

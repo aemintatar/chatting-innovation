@@ -208,17 +208,17 @@ if 'percentile_cutoff' not in st.session_state:
     st.session_state['percentile_cutoff'] = 0.9
 if 'scored_docs' in st.session_state:
     percentile_cutoff = st.slider(
-        "Select percentile cutoff (top X% of scored documents)",
+        "Select quantile cutoff.",
         min_value=0.0,
         max_value=1.0,
         value=st.session_state['percentile_cutoff'],
         step=0.01
     ) 
-    if st.button("Apply Percentile Cutoff"):
+    if st.button("Apply Quantile Cutoff"):
         st.session_state['percentile_cutoff'] = percentile_cutoff
         scored_docs = st.session_state.get("scored_docs")
-        text_for_summary = filter_by_percentile_session(scored_docs)
-        st.success("Percentile Cutoff applied! You can summarize the truncated list of documents!")
+        text_for_summary = filter_by_quantile_session(scored_docs)
+        st.success("Quantile Cutoff applied! You can summarize the truncated list of documents!")
         st.session_state['ready_for_summary'] = True
 
 
