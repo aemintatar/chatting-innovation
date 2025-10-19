@@ -110,8 +110,7 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     context_value = st.selectbox(
-    "Context",
-    ["-- None --", "Technology", "Service", "Good"],
+    "**Context** (required)",["-- None --", "Technology", "Service", "Good"],
     index=0,
     key="sidebar_context"
 )
@@ -119,7 +118,7 @@ with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
     country_regions = load_country_regions(nuts2_meta)
     country_options = ["-- None --"] + sorted(list(country_regions.keys()))
-    country_value = st.selectbox("Country (optional)", 
+    country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
                            index=0,
                            key="sidebar_country")
@@ -128,7 +127,7 @@ with col3:
     if country_value and not country_value.startswith("--"):
         region_options += sorted(country_regions.get(country_value, []))
     region_options = [option for option in region_options if option!='Extra-Regio NUTS 2']
-    region_value = st.selectbox("Region (optional)", 
+    region_value = st.selectbox("**Region** (optional)", 
                           region_options, 
                           index=0,
                           key="sidebar_region")
@@ -138,10 +137,11 @@ if st.button("Apply Parameters"):
     st.session_state["country_code"] = None if country_value.startswith("--") else country_value
     st.session_state["selected_region"] = None if region_value.startswith("--") else region_value
     st.success("Parameters applied!")
+
+if 'detected_context' in st.session_state:
+    st.write('#### Specializations')
     df = get_top_lq()
     st.session_state['specialization'] = df
-if 'specialization' in st.session_state:
-    st.write('#### Specializations')
     st.dataframe(st.session_state.get('specialization'))
     
 
@@ -197,29 +197,34 @@ if st.session_state.get('selected_codes'):
     if 'scored_docs' in st.session_state:
         st.write("#### Documents with Quantiles")
         st.dataframe(st.session_state.get('scored_docs'))
+        
 
 
 # =========================
 # 🔹 STEP 4: Truncation using Percentailes
 # =========================
 
-# Default percentile 0.9 (top 10%)
-if 'percentile_cutoff' not in st.session_state:
-    st.session_state['percentile_cutoff'] = 0.9
+# Default quantile 0.9 (top 10%)
+if 'quantile_cutoff' not in st.session_state:
+    st.session_state['quantile_cutoff'] = 0.9
 if 'scored_docs' in st.session_state:
-    percentile_cutoff = st.slider(
+    quantile_cutoff = st.slider(
         "Select quantile cutoff.",
         min_value=0.0,
         max_value=1.0,
-        value=st.session_state['percentile_cutoff'],
+        value=st.session_state['quantile_cutoff'],
         step=0.01
     ) 
     if st.button("Apply Quantile Cutoff"):
-        st.session_state['percentile_cutoff'] = percentile_cutoff
+        st.session_state['quantile_cutoff'] = quantile_cutoff
         scored_docs = st.session_state.get("scored_docs")
         text_for_summary = filter_by_quantile_session(scored_docs)
         st.success("Quantile Cutoff applied! You can summarize the truncated list of documents!")
         st.session_state['ready_for_summary'] = True
+        st.divider()
+        if 'low_lq' in st.session_state:
+            specialized_regions()
+
 
 
 # =========================

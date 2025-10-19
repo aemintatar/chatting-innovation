@@ -50,12 +50,12 @@ def get_top_lq():
         lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
         lq_variable = 'tech_lq'
         lq_code_variable = 'cpc'
-        label_variable = 'cpc_4digit_label'
+        label_variable = 'cpc_4digit_label' #from lq dataset, not clean
     else:
         lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
-        label_variable = 'Nice_subclass_label'
+        label_variable = 'Nice_subclass_label' #from lq dataset, not clean
     if selected_region:
         for region in region_list: #finds the NUTS2 code of the region
             if region['NUTS label'] == selected_region:
@@ -66,7 +66,7 @@ def get_top_lq():
         specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1]
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
-            st.markdown(f" Here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
+            st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
             return specialization_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
@@ -205,6 +205,7 @@ def display_retrieved_documents():
         return
 
     st.markdown("##### Select documents to keep:")
+    st.write("Ordered by semantic distance; smaller distances indicate a closer semantic match between the query and the labels." )
 
     selected_codes_list = []
     for idx, doc in enumerate(docs):
@@ -221,12 +222,12 @@ def display_retrieved_documents():
             if selected_region:
                 lq_variable = 'tech_lq'
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
                 key=checkbox_key
             )
             else:
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned')}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned')}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
                 key=checkbox_key
             )
 
@@ -234,12 +235,12 @@ def display_retrieved_documents():
             if selected_region:
                 lq_variable = 'market_lq'
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
                 key=checkbox_key
             )
             else:
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
                 key=checkbox_key
             )
         if checked:
@@ -349,18 +350,76 @@ def scoring_documents() -> dict:
 
 def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Filters scored DataFrame based on the percentile set in session state.
+    Filters scored DataFrame based on the quantile set in session state.
     """
-    percentile = st.session_state.get('percentile_cutoff', 0.9)
-    
+    quantile = st.session_state.get('quantile_cutoff', 0.9)
+    context = st.session_state.get("detected_context", "Not specified")
+    if context == 'technology':
+        lq_variable = 'market_lq'
+    else:
+        lq_variable = 'tech_lq'
+
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
     
-    filtered_df = results_df[results_df['Quantiles'] >= percentile]
+    filtered_df = results_df[results_df['Quantiles'] >= quantile]
+
+    low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
+    if low_lq.shape[0]:
+        st.session_state['low_lq'] = low_lq
 
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
 
+def specialized_regions():
+    """This will find the regions with LQ scores higher 1 for the documents whose LQ score is lower than 1."""
+    # Collect context from Streamlit state
+    context = st.session_state.get("detected_context", "Not specified")
+    selected_region = st.session_state.get("selected_region", "Not specified")
+    region_list = pd.DataFrame(st.session_state.get("META_NUTS2_INDEX_KEY"))
+    selected_code = region_list['NUTS Code'][region_list['NUTS label']==selected_region].values[0] #finds the NUTS2 code of the region
+    low_lq = st.session_state.get('low_lq')
+
+    filtered_df = st.session_state.get("filtered_docs")
+    distance = pd.DataFrame(st.session_state['META_DISTANCE_INDEX_KEY'])
+    distance = distance[distance['nuts2_1'] == selected_code]
+
+    if context == 'technology':
+        lq_variable = 'market_lq'
+        lq_code_variable = 'Nice_subclass'
+        lq_code_variable2 = 'cpc'
+        code_variable = 'Nice_subclass'
+        code_variable2 = 'CPC_4digit'
+        
+        lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
+    else:
+        lq_variable = 'tech_lq'
+        lq_code_variable = 'cpc'
+        lq_code_variable2 = 'Nice_subclass'
+        code_variable = 'CPC_4digit'
+        code_variable2 = 'Nice_subclass'
+        lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+    
+    
+    low_codes = low_lq[code_variable]
+    lq_metadata = pd.DataFrame(lq_metadata)
+
+    #highest LQ and highest LQ with shortest distance
+    specialized_regions = lq_metadata[lq_metadata[lq_code_variable].isin(low_codes)]
+    specialized_regions = specialized_regions.sort_values(lq_variable,ascending=False)
+    specialized_regions =  specialized_regions[specialized_regions[lq_variable]>=1]
+    general_specialized_regions_df = specialized_regions.groupby(lq_code_variable,group_keys=False).apply(lambda g:g.nlargest(3,lq_variable))
+    #print(general_specialized_regions_df.head())
+    
+    specialized_regions = specialized_regions.merge(right=distance,left_on='nuts2_code',right_on='nuts2_2')
+    specialized_regions = specialized_regions[[lq_code_variable,'nuts2_2','nuts2','country_en',lq_variable,'distance_km']]
+    specialized_regions = filtered_df.merge(right=specialized_regions,left_on = code_variable,right_on=lq_code_variable,suffixes = ["_origin",'_closest'])
+
+    closest_specialized_regions_df = specialized_regions.groupby(code_variable,group_keys=False).apply(lambda g:g.nsmallest(3,'distance_km'))
+    print(closest_specialized_regions_df.head())
+    st.session_state['general_specialized'] = general_specialized_regions_df
+    st.session_state['local_specialized'] = closest_specialized_regions_df
+    return general_specialized_regions_df, closest_specialized_regions_df
 
 def summarize_documents() -> tuple[str, bytes]:
     """
@@ -368,9 +427,10 @@ def summarize_documents() -> tuple[str, bytes]:
     """
     # Collect context from Streamlit state
     context = st.session_state.get("detected_context", "Not specified")
-    country = st.session_state.get("country_code", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
     filtered_df = st.session_state.get("filtered_docs")
+    general_specialized_df = st.session_state.get("general_specialized")
+    local_specialized_df = st.session_state.get("local_specialized")
     
     #create the user text
     if context.lower() == 'technology':
@@ -387,30 +447,35 @@ def summarize_documents() -> tuple[str, bytes]:
 
 
     user_message = f'''Summarize the following content of type {context} which represents the most 
-        relevant documents to users query. It contains the percentiles obtained from the quantiles. 
-        Sometines, when user specifies region, they also contain LQ scores which represent the strength of the specialization
-        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field
-        that follows:\n\n
-        This is the context: {context}.
+        relevant documents to users query. It contains the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes. 
+        Sometines, if the user specifies region, they also contain LQ scores which represent the strength of the specialization
+        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field.
+        When LQ scores are present and they are lower than 1 for some codes, you are expected to use the general specialized text which contains the top 3 locations
+        where that topic has the highest specialization and also local specialized text which contains the top 3 locations
+        where that topic has the highest specialization and closest to the region in question. \n
+        This is the context: {context}
         This is the collection of documents: {text}
-        If the type is technology, give your summary from the market perspective (service, good).
-        If the type is good or service, then give your summary from the technology perspective.  
-        In your repsonse state clearly your perspective.
+        This is the general specialized documents: {general_specialized_df}
+        This is the local specialized documents: {local_specialized_df}
+        If the context is technology, give your summary from the market perspective (service, good).
+        If the context is good or service, then give your summary from the technology perspective.  
+        In your repsonse CLEARLY state your perspective.
+        For each summary point, CLEARLY state if that is speacialization of that region, if region is selected.
 
         A sample response can be of the form:
         From the technology perspective the summary is as follows:
-        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th percentile or more quantile around 40-50%. 
-        Moreover, the average LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
+        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th quantile or more. 
+        Moreover, LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
 
-        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th percentiles.
-        Even though, this field has high percentile, the avegrage LQ score is less than 1, meaning the region is not specialized in this field. 
+        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th quantiles.
+        Even though, this field has high quantile, the LQ score is less than 1, meaning the region is not specialized in this field. In Europe, the top 3 locations
+        specialized in this field are ..... The closest top 3 specilazed locations to <region selected by the user> are ....
 
-        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th percentiles.
+        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th quantiles.
 
-        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduceThis category is based on the documents between the 20th and 40th percentiles.
+        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduce. This category is based on the documents between the 20th and 40th quantiles.
 
-        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest percentiles.
-
+        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest quantiles.
         '''
 
     # Generate the summary
