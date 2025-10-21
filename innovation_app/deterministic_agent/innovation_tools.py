@@ -452,7 +452,8 @@ def summarize_documents() -> tuple[str, bytes]:
         of that region in that field. If LQ score is higher from 1, then that region is specialized in that field.
         When LQ scores are present and they are lower than 1 for some codes, you are expected to use the general specialized text which contains the top 3 locations
         where that topic has the highest specialization and also local specialized text which contains the top 3 locations
-        where that topic has the highest specialization and closest to the region in question. \n
+        where that topic has the highest specialization and closest to the region in question. When you refer to those top 3 locations do not refer to them using their 
+        NUTS2 code but their names.\n
         This is the context: {context}
         This is the collection of documents: {text}
         This is the general specialized documents: {general_specialized_df}
