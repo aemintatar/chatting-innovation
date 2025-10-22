@@ -1,8 +1,10 @@
 import io
 import os
-import faiss
+import tempfile
+import requests
 import numpy as np
 import pandas as pd
+from io import BytesIO
 import streamlit as st
 from settings import *
 from openai import OpenAI
@@ -17,18 +19,26 @@ embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5",device='cpu')
 def load_index(index_path: str=None):
     """Loads a FAISS index and optional metadata."""
     index = None
+    r = requests.get(index_path)
+    r.raise_for_status()
     if index_path:
-        index = faiss.read_index(index_path)
+        import faiss
+            # write to a temporary file (because FAISS needs a real file path)
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            tmp.write(r.content)
+            tmp.flush()
+            index = faiss.read_index(tmp.name)
     
     return index
 
 def load_meta(metadata_path: str = None):
     """Loads a FAISS index and optional metadata."""
     metadata = None
-    if metadata_path and os.path.exists(metadata_path):
+    r = requests.get(metadata_path)
+    r.raise_for_status()
+    if metadata_path:
         import pickle
-        with open(metadata_path, "rb") as f:
-            metadata = pickle.load(f)
+        metadata =  pickle.load(BytesIO(r.content))
     return metadata
 
 def load_country_regions(metadata):
@@ -343,7 +353,7 @@ def scoring_documents() -> dict:
             results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'nuts2':'region','country_en':'country','CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
         else:
-            results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
+            results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
 
     return results
@@ -354,19 +364,20 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
     quantile = st.session_state.get('quantile_cutoff', 0.9)
     context = st.session_state.get("detected_context", "Not specified")
-    if context == 'technology':
-        lq_variable = 'market_lq'
-    else:
-        lq_variable = 'tech_lq'
-
+    selected_region = st.session_state.get("selected_region", None)
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
     
     filtered_df = results_df[results_df['Quantiles'] >= quantile]
+    if selected_region:
+        if context == 'technology':
+            lq_variable = 'market_lq'
+        else:
+            lq_variable = 'tech_lq'
 
-    low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
-    if low_lq.shape[0]:
-        st.session_state['low_lq'] = low_lq
+        low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
+        if low_lq.shape[0]:
+            st.session_state['low_lq'] = low_lq
 
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
@@ -378,7 +389,7 @@ def specialized_regions():
     selected_region = st.session_state.get("selected_region", "Not specified")
     region_list = pd.DataFrame(st.session_state.get("META_NUTS2_INDEX_KEY"))
     selected_code = region_list['NUTS Code'][region_list['NUTS label']==selected_region].values[0] #finds the NUTS2 code of the region
-    low_lq = st.session_state.get('low_lq')
+    low_lq = st.session_state.get('low_lq',None)
 
     filtered_df = st.session_state.get("filtered_docs")
     distance = pd.DataFrame(st.session_state['META_DISTANCE_INDEX_KEY'])
@@ -409,14 +420,18 @@ def specialized_regions():
     specialized_regions = specialized_regions.sort_values(lq_variable,ascending=False)
     specialized_regions =  specialized_regions[specialized_regions[lq_variable]>=1]
     general_specialized_regions_df = specialized_regions.groupby(lq_code_variable,group_keys=False).apply(lambda g:g.nlargest(3,lq_variable))
-    print(general_specialized_regions_df.head())
+    #drop unnecessary columns to improve LLM response time and the number token processed tokens
+    general_specialized_regions_df = general_specialized_regions_df[['nuts2_code', 'nuts2', 'country_en',lq_code_variable,lq_variable]]
+
     
     specialized_regions = specialized_regions.merge(right=distance,left_on='nuts2_code',right_on='nuts2_2')
     specialized_regions = specialized_regions[[lq_code_variable,'nuts2_2','nuts2','country_en',lq_variable,'distance_km']]
     specialized_regions = filtered_df.merge(right=specialized_regions,left_on = code_variable,right_on=lq_code_variable,suffixes = ["_origin",'_closest'])
 
     closest_specialized_regions_df = specialized_regions.groupby(code_variable,group_keys=False).apply(lambda g:g.nsmallest(3,'distance_km'))
-    print(closest_specialized_regions_df.head())
+    #drop unnecessary columns to improve LLM response time and the number token processed tokens
+    closest_specialized_regions_df =closest_specialized_regions_df[[lq_code_variable,'nuts2_2', 'nuts2', 'country_en', lq_variable+'_closest', 'distance_km']]
+
     st.session_state['general_specialized'] = general_specialized_regions_df
     st.session_state['local_specialized'] = closest_specialized_regions_df
     return general_specialized_regions_df, closest_specialized_regions_df
@@ -429,55 +444,90 @@ def summarize_documents() -> tuple[str, bytes]:
     context = st.session_state.get("detected_context", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
     filtered_df = st.session_state.get("filtered_docs")
-    general_specialized_df = st.session_state.get("general_specialized")
-    local_specialized_df = st.session_state.get("local_specialized")
+    
     
     #create the user text
     if context.lower() == 'technology':
         if region:
             text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']]
+            general_specialized_df = st.session_state.get("general_specialized")
+            local_specialized_df = st.session_state.get("local_specialized")
+            general_specialized_documents = general_specialized_df.to_dict(orient='records')
+            local_specialized_documents = local_specialized_df.to_dict(orient='records')
         else:
             text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']]
+            general_specialized_documents = None
+            local_specialized_documents = None
     if context.lower() in ['good','service']:
         if region:
             text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
+            general_specialized_df = st.session_state.get("general_specialized")
+            local_specialized_df = st.session_state.get("local_specialized")
+            general_specialized_documents = general_specialized_df.to_dict(orient='records')
+            local_specialized_documents = local_specialized_df.to_dict(orient='records')
         else:
             text_df = filtered_df[['CPC_4digit_label','Quantiles']]
+            general_specialized_documents = None
+            local_specialized_documents = None
+    
     text = text_df.to_dict(orient='records')
+    
+    user_message = f'''Summarize the following content which represents the most 
+        relevant documents to users query and auxiliary documents related to the top locations and closesr top locations when location information is present. 
+        They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
+        of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
+        When LQ scores are lower than 1 for some codes, you are expected to ALWAYS recommend top 3 specializations using the general specialized documents 
+        and also recommend closet top 3 specializations using the local specialized documents.
+        When you refer to those top 3 locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
+        Include LQ scores and distances in KM to your reponse to be transperent.\n
 
-
-    user_message = f'''Summarize the following content of type {context} which represents the most 
-        relevant documents to users query. It contains the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes. 
-        Sometines, if the user specifies region, they also contain LQ scores which represent the strength of the specialization
-        of that region in that field. If LQ score is higher from 1, then that region is specialized in that field.
-        When LQ scores are present and they are lower than 1 for some codes, you are expected to use the general specialized documents which contains the top 3 locations
-        where that topic has the highest specialization and also local specialized documents which contains the top 3 locations
-        where that topic has the highest specialization and closest to the region in question. When you refer to those top 3 locations do not refer to them using their 
-        NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
-        Include LQ scores and distamces in KM to your reponse to be more convencing.\n
-        This is the context: {context}
-        This is the collection of documents: {text}
-        This is the general specialized documents: {general_specialized_df}
-        This is the local specialized documents: {local_specialized_df}
         If the context is technology, give your summary from the market perspective (service, good).
-        If the context is good or service, then give your summary from the technology perspective.  
-        In your repsonse CLEARLY state your perspective.
-        For each summary point, CLEARLY state if that is speacialization of that region, if region is selected.
+        If the context is good or service, then give your summary from the technology perspective. 
+        In your repsonse CLEARLY state your perspective. 
+        Learn from the samples below, how to respond and organize the repospond:
 
-        A sample response can be of the form:
+        In case LQ scores are presents, a sample response can be of the form, assuming context is service or good
         From the technology perspective the summary is as follows:
-        1. **Speech and Audio Processing**: This includes speech analysis, synthesis, recognition, voice processing, and audio coding and decoding. This is likely to be the most relevant category based on the documents in the 80th quantile or more. 
-        Moreover, LQ scores for  this topic is significantly higher than 1 meaning the region is higly specialized in this field. 
+        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
+        - This category is based on documents in the 100th quantile.
+        - The LQ score for this topic is 0.535, which is less than 1, indicating that the region (Burgenland) is not specialized in this field.
+        - In Europe, the top 3 locations specialized in this field are
+            - Île de France (France), LQ score of 1.124
+        - The loaction above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
 
-        2. **Telecommunications**: This includes telephonic communication, transmission of digital information (e.g., telegraphic communication), and wireless communications networks. This category is based on the documents between the 60th and 80th quantiles.
-        Even though, this field has high quantile, the LQ score is less than 1, meaning the region is not specialized in this field. In Europe, the top 3 locations
-        specialized in this field are ..... The closest top 3 specilazed locations to <region selected by the user> are ....
+        2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
+        - This category is based on documents in the 99th quantile.
+        - The LQ score for this topic is 1.328, which is higher than 1, indicating that the region is specialized in this field.
 
-        3. **Audio and Acoustic Devices**: This includes loudspeakers, microphones, gramophone pick-ups, deaf-aid sets, and public address systems. This category is based on the documents between the 40th and 60th quantiles.
+        3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
+        -This category is based on the documents in the 91st quantile. 
+        - The LQ score for this topic is lower than 1 (0.782), indicating that the region is not specialized in this field. 
+        - In Europe, the top 3 locations specialized in this field are:
+            - Stuttgart (Germany), LQ score of 1.229, 
+            - Emilia-Romagna (Italy), LQ score of 1.156, 
+            - Düsseldorf (Germany), LQ score of 1.113. 
+        - The closest top 3 specialized locations to Burgenland (Austria) are:
+            - Veneto (Italy), LQ score of 1.019, distance of 415.52 km, 
+            - Stuttgart (Germany), LQ of 1.229, distance of 537.03 km,
+            - Emilia-Romagna (Italy) with an LQ of 1.156, distance of 540.74 km.
+        
+        In case LQ scores are missing, a sample response can be of the form, assuming context is service or good:
+        From the technology perspective the summary is as follows:
+        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
+        - This category is based on documents in the 100th quantile.
 
-        4. **Information Storage and Retrieval**: This includes information storage based on relative movement of a record carrier and transduce. This category is based on the documents between the 20th and 40th quantiles.
+        2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
+        - This category is based on documents in the 99th quantile.
 
-        5. **Multimedia and Pictorial Communication**: This includes stereophonic systems and pictorial communication (e.g., television). This category is based on the documents in the lowest quantiles.
+        3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
+        -This category is based on the documents in the 91st quantile. 
+
+
+        Here are the documents needed for the summarty:
+        Context: {context}
+        Collection of documents: {text}
+        General specialized documents: {general_specialized_documents}
+        Local specialized documents: {local_specialized_documents}
         '''
 
     # Generate the summary
@@ -487,7 +537,7 @@ def summarize_documents() -> tuple[str, bytes]:
             {"role": "system", "content": "You are an analytical research assistant that writes structured, concise summaries."},
             {"role": "user", "content": user_message}
         ],
-        temperature=0.2,
+        temperature=0.0,
     )
 
     summary = response.choices[0].message.content.replace('```', '').strip()

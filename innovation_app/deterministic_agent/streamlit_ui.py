@@ -10,7 +10,7 @@ from innovation_tools import *
 # =========================
 st.set_page_config(page_title="Chatting Innovation\\Bridging Invention and Market Innovation", layout="wide") # Configures the browser tab title and page layout.
 st.title("Chatting Innovation") # Main title of the app.
-st.title("Bridging Invention and Market Innovation")
+st.header("Bridging Invention and Market Innovation")
 st.markdown("""
             The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
 Abbasiharofteh, Castaldi, and Petralia (2025 &amp; forthcoming), which establishes a
@@ -48,55 +48,34 @@ Bridging Invention and Market Innovation. arXiv preprint arXiv:xxx.xxx.""")
 def load_all_data_from_drive():
     st.write("📦 Loading document indexes...")
 
-    # 🔹 Google Drive file IDs (replace with your real ones)
-    DRIVE_FILES = {
-        "META_ALL_INDEX_PATH": "1dIGLD4JLS8Jf_LKH-bglwPGF4-HA0eKs",  # allmetadata.pkl
-        "FAISS_TECH_INDEX_PATH": "1dVVJo7gQNVxuIEfP-Fo9g8_yFTAQ2037",
-        "META_TECH_INDEX_PATH": "17l9z2n6gmYT7RVi40NI99-NFq5OwyABE",
-        "FAISS_SERVICE_INDEX_PATH": "1yXmOlTKYbws0gPfxJ_3PtPz3jy3bhhpD",
-        "META_SERVICE_INDEX_PATH": "11_U_y1E4cwSqh1jYEXOUwEZoKa022BEA",
-        "FAISS_GOOD_INDEX_PATH": "1nQNbPvYH9hCguLuJpodnWKBI2GRXNttD",
-        "META_GOOD_INDEX_PATH": "11J-wahQa8qoKkm7FKE4rBNWJsYQecCjY",
-        "FAISS_MARKET_LQ_INDEX_PATH": "1Ur0dl3407o2h1uQyRis8ggtFurV1Nzk7",
-        "META_MARKET_LQ_INDEX_PATH": "1DypEu3UQUAlbDaM90tER8rsTLgnxxIiz",
-        "FAISS_TECH_LQ_INDEX_PATH": "11wCzPhGbRTjZRQ_SSkpaVJw_Q3e-hpAF",
-        "META_TECH_LQ_INDEX_PATH": "1cDuXTx34MxvwoUpif8YDyrrAhVretLg3",
-        "FAISS_DISTANCE_INDEX_PATH": "1qsDZVwDFIXoRLhOUeXqAUPIZKutyaRBt",
-        "META_DISTANCE_INDEX_PATH":"1bpB9u3MtvEFtPxzmNEofHgK1ZRXudnqD",
-        "META_NUTS2_INDEX_PATH": "14xU2zeR1fhajs5wot7W80JVYRY7_vKT8",
+    HF_FILES = {
+        "META_ALL_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/allmetadata.pkl",  
+        "FAISS_TECH_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/faiss_tech_index.bin",
+        "META_TECH_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/techmetadata.pkl",
+        "FAISS_SERVICE_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/faiss_service_index.bin",
+        "META_SERVICE_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/servicemetadata.pkl",
+        "FAISS_GOOD_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/faiss_good_index.bin",
+        "META_GOOD_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/goodmetadata.pkl",
+        "META_MARKET_LQ_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/market_lq_metadata.pkl",
+        "META_TECH_LQ_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/tech_lq_metadata.pkl",
+        "META_DISTANCE_INDEX_PATH":"https://huggingface.co/datasets/atatar/innovation_data/resolve/main/distance.pkl",
+        "META_NUTS2_INDEX_PATH": "https://huggingface.co/datasets/atatar/innovation_data/resolve/main/nuts2.pkl"
     }
 
-    data_dir = "/tmp/data"
-    os.makedirs(data_dir, exist_ok=True)
-    paths = {}
-
-    # 🔹 Download missing files only
-    for name, file_id in DRIVE_FILES.items():
-        dest = os.path.join(data_dir, name + os.path.splitext(file_id)[0] + ".bin")  # unique filename
-        url = f"https://drive.google.com/uc?id={file_id}"
-
-        if not os.path.exists(dest):
-            st.write(f"⬇️ Downloading {name}...")
-            gdown.download(url, dest, quiet=False)
-
-        paths[name] = dest
 
     # 🔹 Load data using your existing functions
     st.write("⚙️ Reading data files into memory...")
-    all_meta = load_meta(paths["META_ALL_INDEX_PATH"])
-    tech_index = load_index(paths["FAISS_TECH_INDEX_PATH"])
-    tech_meta = load_meta(paths["META_TECH_INDEX_PATH"])
-    service_index = load_index(paths["FAISS_SERVICE_INDEX_PATH"])
-    service_meta = load_meta(paths["META_SERVICE_INDEX_PATH"])
-    good_index = load_index(paths["FAISS_GOOD_INDEX_PATH"])
-    good_meta = load_meta(paths["META_GOOD_INDEX_PATH"])
-    market_lq_index = load_index(paths["FAISS_MARKET_LQ_INDEX_PATH"])
-    market_lq_meta = load_meta(paths["META_MARKET_LQ_INDEX_PATH"])
-    tech_lq_index = load_index(paths["FAISS_TECH_LQ_INDEX_PATH"])
-    tech_lq_meta = load_meta(paths["META_TECH_LQ_INDEX_PATH"])
-    distance_index = load_index(paths["FAISS_DISTANCE_INDEX_PATH"])
-    distance_meta = load_meta(paths['META_DISTANCE_INDEX_PATH'])
-    nuts2_meta = load_meta(paths["META_NUTS2_INDEX_PATH"])
+    all_meta = load_meta(HF_FILES["META_ALL_INDEX_PATH"])
+    tech_index = load_index(HF_FILES["FAISS_TECH_INDEX_PATH"])
+    tech_meta = load_meta(HF_FILES["META_TECH_INDEX_PATH"])
+    service_index = load_index(HF_FILES["FAISS_SERVICE_INDEX_PATH"])
+    service_meta = load_meta(HF_FILES["META_SERVICE_INDEX_PATH"])
+    good_index = load_index(HF_FILES["FAISS_GOOD_INDEX_PATH"])
+    good_meta = load_meta(HF_FILES["META_GOOD_INDEX_PATH"])
+    market_lq_meta = load_meta(HF_FILES["META_MARKET_LQ_INDEX_PATH"])
+    tech_lq_meta = load_meta(HF_FILES["META_TECH_LQ_INDEX_PATH"])
+    distance_index = load_meta(HF_FILES["META_DISTANCE_INDEX_PATH"])
+    nuts2_meta = load_meta(HF_FILES["META_NUTS2_INDEX_PATH"])
 
     # Return all data as a dictionary
     return {
@@ -107,18 +86,15 @@ def load_all_data_from_drive():
         "META_SERVICE_INDEX_KEY": service_meta,
         "FAISS_GOOD_INDEX_KEY": good_index,
         "META_GOOD_INDEX_KEY": good_meta,
-        "FAISS_MARKET_LQ_INDEX_KEY": market_lq_index,
         "META_MARKET_LQ_INDEX_KEY": market_lq_meta,
-        "FAISS_TECH_LQ_INDEX_KEY": tech_lq_index,
         "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
-        "FAISS_DISTANCE_INDEX_KEY": distance_index,
-        "META_DISTANCE_INDEX_KEY" : distance_meta,
+        "META_DISTANCE_INDEX_KEY": distance_index,
         "META_NUTS2_INDEX_KEY": nuts2_meta,
     }
 
 # 🧠 Initialize data once
 if "data_loaded" not in st.session_state:
-    with st.spinner("Loading all data from Google Drive..."):
+    with st.spinner("Loading all data from Hugging Face..."):
         data_dict = load_all_data_from_drive()
         for k, v in data_dict.items():
             st.session_state[k] = v
@@ -169,20 +145,9 @@ if 'detected_context' in st.session_state:
     st.dataframe(st.session_state.get('specialization'))
     
 
-
-
 st.divider() # A visual separator.
 st.markdown("#### Query")
 prompt = st.text_area("Enter your product or technology idea:",key="query")
-
-if MESSAGE_HISTORY_KEY not in st.session_state:
-    st.session_state[MESSAGE_HISTORY_KEY] = []
-
-for message in st.session_state[MESSAGE_HISTORY_KEY]:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-
 
 
 # =========================
@@ -280,11 +245,6 @@ if st.button("Restart App"):
     for key in list(st.session_state.keys()):
         del st.session_state[key]
 
-    # Clear cached resources or data if desired
-    # st.cache_data.clear()
-    # st.cache_resource.clear()
-
-    # Force rerun to redraw UI elements with defaults
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 
