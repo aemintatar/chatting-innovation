@@ -10,7 +10,7 @@ from innovation_tools import *
 # =========================
 st.set_page_config(page_title="Chatting Innovation\\Bridging Invention and Market Innovation", layout="wide") # Configures the browser tab title and page layout.
 st.title("Chatting Innovation") # Main title of the app.
-st.header("Bridging Invention and Market Innovation")
+st.subheader("Bridging Invention and Market Innovation")
 st.markdown("""
             The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
 Abbasiharofteh, Castaldi, and Petralia (2025 &amp; forthcoming), which establishes a
