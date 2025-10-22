@@ -409,7 +409,7 @@ def specialized_regions():
     specialized_regions = specialized_regions.sort_values(lq_variable,ascending=False)
     specialized_regions =  specialized_regions[specialized_regions[lq_variable]>=1]
     general_specialized_regions_df = specialized_regions.groupby(lq_code_variable,group_keys=False).apply(lambda g:g.nlargest(3,lq_variable))
-    #print(general_specialized_regions_df.head())
+    print(general_specialized_regions_df.head())
     
     specialized_regions = specialized_regions.merge(right=distance,left_on='nuts2_code',right_on='nuts2_2')
     specialized_regions = specialized_regions[[lq_code_variable,'nuts2_2','nuts2','country_en',lq_variable,'distance_km']]
@@ -450,10 +450,11 @@ def summarize_documents() -> tuple[str, bytes]:
         relevant documents to users query. It contains the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes. 
         Sometines, if the user specifies region, they also contain LQ scores which represent the strength of the specialization
         of that region in that field. If LQ score is higher from 1, then that region is specialized in that field.
-        When LQ scores are present and they are lower than 1 for some codes, you are expected to use the general specialized text which contains the top 3 locations
-        where that topic has the highest specialization and also local specialized text which contains the top 3 locations
+        When LQ scores are present and they are lower than 1 for some codes, you are expected to use the general specialized documents which contains the top 3 locations
+        where that topic has the highest specialization and also local specialized documents which contains the top 3 locations
         where that topic has the highest specialization and closest to the region in question. When you refer to those top 3 locations do not refer to them using their 
-        NUTS2 code but their names.\n
+        NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
+        Include LQ scores and distamces in KM to your reponse to be more convencing.\n
         This is the context: {context}
         This is the collection of documents: {text}
         This is the general specialized documents: {general_specialized_df}

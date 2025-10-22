@@ -8,15 +8,39 @@ from innovation_tools import *
 # =========================
 # 🔧 PAGE CONFIG
 # =========================
-st.set_page_config(page_title="Innovation Application", layout="wide") # Configures the browser tab title and page layout.
-st.title("Innovation Assistant") # Main title of the app.
+st.set_page_config(page_title="Chatting Innovation\\Bridging Invention and Market Innovation", layout="wide") # Configures the browser tab title and page layout.
+st.title("Chatting Innovation") # Main title of the app.
+st.title("Bridging Invention and Market Innovation")
 st.markdown("""
-            This application (powered by Mistral and Streamlit) is based on the work of Abbasiharofteh, Castaldi, and Petralia (forthcoming),
-            which establishes a concordance between patents and trademarks. You can enter a *technology* to discover the *goods* and *services* it enables, 
-            or input a *good* or a *service* to identify the *technologies* required for its development and market introduction. The results include a summary 
-            of the goods/services or technologies, along with the strength of their associations (quantiles) derived from the patent-to-trademark concordance.
-            Note: More specific queries lead to better results. For example, instead of entering “Drones,” a more focused query like “Drone Power System” or “Drone Flight Controller” can yield more accurate and meaningful associations.
-            """)
+            The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
+Abbasiharofteh, Castaldi, and Petralia (2025 &amp; forthcoming), which establishes a
+comprehensive concordance between patent and trademark classes.
+            
+The PAT2TM chatbot offers data-driven insights for practitioners, startups, and
+policymakers seeking to bridge inventions and market opportunities. By mapping
+technologies to goods and services, it helps identify diversification paths, niche
+market potentials, and strategic partnerships.
+            
+You can explore the connections between technologies and markets in two ways:
+* Enter a technology to discover the goods and services it enables.
+* Enter a good or service to identify the technologies required for its development and market application.
+
+The chatbot returns a summary of the relevant goods, services, or technologies,
+along with the strength of their associations (quantiles) derived from the patent-to-
+trademark concordance.
+            
+💡 **Tip:** More specific queries yield better results. For example, instead of typing
+“Drones”, try “Drone Power System” or “Drone Flight Controller” for more accurate
+and meaningful associations.
+If you use the PAT2TM chatbot or related data, please cite:
+* Abbasiharofteh, Milad; Castaldi, Carolina; Petralia, Sergio (2025). From
+technologies to markets: A concordance between patent and trademark
+classes. , https://doi.org/10.7910/DVN/JD7JIL, Harvard Dataverse, V1
+* Abbasiharofteh, Milad; Castaldi, Carolina; Petralia, Sergio (forthcoming). From
+technologies to markets: A concordance between patent and trademark
+classes. Scientific Data.
+* Abbasiharofteh, Milad; Tatar, Emin (forthcoming). Chatting Innovation:
+Bridging Invention and Market Innovation. arXiv preprint arXiv:xxx.xxx.""")
                     
 
 # 🔁 Cached data loader (runs only once per session)
@@ -270,4 +294,6 @@ if st.button("Restart App"):
 # FOOTER
 # =========================
 st.markdown("---")
-st.caption("🚀 Powered by Streamlit | © 2025 Innovation Assistant")
+st.markdown("#### Acknowledgements")
+st.markdown("We thank the [Jantina Tammes School of Digital Society, Technology and AI](https://www.rug.nl/jantina-tammes-school/) at the University of Groningen for their support.")
+st.caption("Powered by Streamlit | © 2025 Innovation App")
