@@ -4,6 +4,8 @@ import streamlit as st
 from settings import *
 from datetime import datetime
 from innovation_tools import *
+from huggingface_hub import hf_hub_download
+
 
 # =========================
 # 🔧 PAGE CONFIG
@@ -44,7 +46,7 @@ Bridging Invention and Market Innovation. arXiv preprint arXiv:xxx.xxx.""")
                     
 
 # 🔁 Cached data loader (runs only once per session)
-@st.cache_resource
+""" @st.cache_resource
 def load_all_data_from_drive():
     st.write("📦 Loading document indexes...")
 
@@ -90,7 +92,69 @@ def load_all_data_from_drive():
         "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
         "META_DISTANCE_INDEX_KEY": distance_index,
         "META_NUTS2_INDEX_KEY": nuts2_meta,
+    } """
+
+from huggingface_hub import hf_hub_download
+import streamlit as st
+
+
+@st.cache_resource
+def load_all_data_from_drive():
+    st.write("📦 Loading document indexes...")
+
+    REPO_ID = "atatar/innovation_data"
+
+    HF_FILES = {
+        "META_ALL_INDEX_PATH": "allmetadata.pkl",  
+        "FAISS_TECH_INDEX_PATH": "faiss_tech_index.bin",
+        "META_TECH_INDEX_PATH": "techmetadata.pkl",
+        "FAISS_SERVICE_INDEX_PATH": "faiss_service_index.bin",
+        "META_SERVICE_INDEX_PATH": "servicemetadata.pkl",
+        "FAISS_GOOD_INDEX_PATH": "faiss_good_index.bin",
+        "META_GOOD_INDEX_PATH": "goodmetadata.pkl",
+        "META_MARKET_LQ_INDEX_PATH": "market_lq_metadata.pkl",
+        "META_TECH_LQ_INDEX_PATH": "tech_lq_metadata.pkl",
+        "META_DISTANCE_INDEX_PATH": "distance.pkl",
+        "META_NUTS2_INDEX_PATH": "nuts2.pkl"
     }
+
+    def local_file(filename):
+        return hf_hub_download(
+            repo_id=REPO_ID,
+            filename=filename,
+            repo_type="dataset",     # <-- REQUIRED
+            force_download=False,
+            local_files_only=False
+        )
+
+    st.write("⚙️ Reading data files into memory...")
+
+    all_meta = load_meta(local_file(HF_FILES["META_ALL_INDEX_PATH"]))
+    tech_index = load_index(local_file(HF_FILES["FAISS_TECH_INDEX_PATH"]))
+    tech_meta = load_meta(local_file(HF_FILES["META_TECH_INDEX_PATH"]))
+    service_index = load_index(local_file(HF_FILES["FAISS_SERVICE_INDEX_PATH"]))
+    service_meta = load_meta(local_file(HF_FILES["META_SERVICE_INDEX_PATH"]))
+    good_index = load_index(local_file(HF_FILES["FAISS_GOOD_INDEX_PATH"]))
+    good_meta = load_meta(local_file(HF_FILES["META_GOOD_INDEX_PATH"]))
+    market_lq_meta = load_meta(local_file(HF_FILES["META_MARKET_LQ_INDEX_PATH"]))
+    tech_lq_meta = load_meta(local_file(HF_FILES["META_TECH_LQ_INDEX_PATH"]))
+    distance_index = load_meta(local_file(HF_FILES["META_DISTANCE_INDEX_PATH"]))
+    nuts2_meta = load_meta(local_file(HF_FILES["META_NUTS2_INDEX_PATH"]))
+
+    return {
+        "META_ALL_INDEX_KEY": all_meta,
+        "FAISS_TECH_INDEX_KEY": tech_index,
+        "META_TECH_INDEX_KEY": tech_meta,
+        "FAISS_SERVICE_INDEX_KEY": service_index,
+        "META_SERVICE_INDEX_KEY": service_meta,
+        "FAISS_GOOD_INDEX_KEY": good_index,
+        "META_GOOD_INDEX_KEY": good_meta,
+        "META_MARKET_LQ_INDEX_KEY": market_lq_meta,
+        "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
+        "META_DISTANCE_INDEX_KEY": distance_index,
+        "META_NUTS2_INDEX_KEY": nuts2_meta,
+    }
+
 
 # 🧠 Initialize data once
 if "data_loaded" not in st.session_state:

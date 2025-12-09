@@ -11,13 +11,17 @@ from openai import OpenAI
 from scipy.stats import rankdata
 from sentence_transformers import SentenceTransformer
 
+from io import BytesIO
+import requests
+import pickle
+
 # Auxiliary Tools
 client = OpenAI(base_url=BASEURL, api_key=APIKEY)
 
 embedding_model = SentenceTransformer("BAAI/bge-small-en-v1.5",device='cpu')
 
-def load_index(index_path: str=None):
-    """Loads a FAISS index and optional metadata."""
+""" def load_index(index_path: str=None):
+    Loads a FAISS index and optional metadata.
     index = None
     r = requests.get(index_path)
     r.raise_for_status()
@@ -29,17 +33,55 @@ def load_index(index_path: str=None):
             tmp.flush()
             index = faiss.read_index(tmp.name)
     
-    return index
+    return index """
 
-def load_meta(metadata_path: str = None):
-    """Loads a FAISS index and optional metadata."""
+import requests
+import faiss
+import os
+import io
+
+def load_index(index_path: str = None):
+    """Loads a FAISS index from either a URL or a local file path."""
+
+    if index_path is None:
+        return None
+
+    # 🌐 If path is a URL → download
+    if str(index_path).startswith("http"):
+        r = requests.get(index_path)
+        r.raise_for_status()
+
+        # For FAISS binary index read from bytes
+        return faiss.read_index_binary(io.BytesIO(r.content))
+
+    # 💾 Else it's a local file → load from disk
+    return faiss.read_index(index_path)
+
+""" def load_meta(metadata_path: str = None):
+    oads a FAISS index and optional metadata.
     metadata = None
     r = requests.get(metadata_path)
     r.raise_for_status()
     if metadata_path:
         import pickle
         metadata =  pickle.load(BytesIO(r.content))
-    return metadata
+    return metadata """
+
+def load_meta(metadata_path: str = None):
+    """Loads metadata from either a URL or a local file path."""
+    
+    if metadata_path is None:
+        return None
+    
+    # 🔍 If it's a URL -> download it
+    if str(metadata_path).startswith("http"):
+        r = requests.get(metadata_path)
+        r.raise_for_status()
+        return pickle.load(BytesIO(r.content))
+    
+    # 📦 Otherwise -> read it as a local file
+    with open(metadata_path, "rb") as f:
+        return pickle.load(f)
 
 def load_country_regions(metadata):
     """Load country-region mappings dynamically."""
