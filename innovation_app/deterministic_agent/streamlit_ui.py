@@ -130,7 +130,7 @@ with col1:
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
     country_regions = load_country_regions(nuts2_meta)
-    country_options = ["-- None --"] + sorted(list(country_regions.keys()))
+    country_options = ["-- None --"] + sorted(list(country_regions))
     country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
                            index=0,
