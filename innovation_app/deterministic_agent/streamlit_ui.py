@@ -129,8 +129,9 @@ with col1:
 )
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
-    country_regions = load_country_regions(nuts2_meta)
-    country_options = ["-- None --"] + sorted(list(country_regions))
+    country_regions = load_country_regions(nuts2_meta)[0]
+    country_names = load_country_regions(nuts2_meta)[1]
+    country_options = ["-- None --"] + sorted(list(country_names))
     country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
                            index=0,
@@ -138,7 +139,8 @@ with col2:
 with col3:
     region_options = ["-- None --"]
     if country_value and not country_value.startswith("--"):
-        region_options += sorted(country_regions.get(country_value, []))
+        country_code = country_value.split("(")[-1].split(")")[0].strip()
+        region_options += sorted(country_regions.get(country_code, []))
     region_options = [option for option in region_options if option!='Extra-Regio NUTS 2']
     region_value = st.selectbox("**Region** (optional)", 
                           region_options, 
