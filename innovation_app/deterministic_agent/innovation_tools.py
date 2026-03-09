@@ -85,12 +85,18 @@ def load_meta(metadata_path: str = None):
 
 def load_country_regions(metadata):
     """Load country-region mappings dynamically."""
-    country_regions = {}
+    country_regions = []
+    seen_countries = set()
+
     for region in metadata:
-        country = region.get("Country code")
-        label = region.get("NUTS label")
-        if country and label:
-            country_regions.setdefault(country, []).append(label)
+        country_code = region.get("Country code")
+        country_name = region.get("Country name")
+        if country_code and country_name:
+            country_key = (country_name, country_code)
+            if country_key not in seen_countries:
+                country_regions.append(f"{country_name} ({country_code})")
+                seen_countries.add(country_key)
+
     return country_regions
 
 def get_top_lq():

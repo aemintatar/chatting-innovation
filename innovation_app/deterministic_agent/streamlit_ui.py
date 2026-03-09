@@ -28,7 +28,7 @@ You can explore the connections between technologies and markets in two ways:
 * Enter a good or service to identify the technologies required for its development and market application.
 
 The chatbot returns a summary of the relevant goods, services, or technologies,
-along with the strength of their associations (quantiles) derived from the patent-to-
+along with the strength of their associations derived from the patent-to-
 trademark concordance.
             
 💡 **Tip:** More specific queries yield better results. For example, instead of typing
