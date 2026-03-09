@@ -117,17 +117,17 @@ def get_top_lq():
                 region_code = region['NUTS Code']
                 break 
         filtered_lq_metadata = pd.DataFrame([meta for meta in lq_metadata if meta['nuts2_code'] == region_code])
-        filtered_lq_metadata = filtered_lq_metadata[[lq_code_variable,label_variable,lq_variable]]
-        specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1]
+        filtered_lq_metadata = filtered_lq_metadata[[lq_code_variable,label_variable,lq_variable]].reset_index(drop=True)
+        specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1].reset_index(drop=True)
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
-            st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
+            st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
             return specialization_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
         elif specialization_size<=3 and specialization_size>0:
-            st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations (LQ >1) in {st.session_state.get('selected_region')}:")
+            st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
             return specialization_lq_metadata.sort_values(lq_variable,ascending=False)
         else:
-            st.markdown(f" There are no specializations (LQ >1) in {st.session_state.get('selected_region')}, but the closest (highest LQ) ones are: ")
+            st.markdown(f" There are no specializations in {st.session_state.get('selected_region')}, but the closest ones are: ")
             return filtered_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
     else:
         lq_metadata = pd.DataFrame(lq_metadata)
@@ -135,13 +135,13 @@ def get_top_lq():
         specialization_lq_metadata = lq_metadata[lq_metadata[lq_variable]>1]
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
-            st.markdown(f"You have not selected a region. Here are the top 3 {st.session_state.get('detected_context')} specializations (LQ >1) in Europe:")
+            st.markdown(f"You have not selected a region. Here are the top 3 {st.session_state.get('detected_context')} specializations in Europe:")
             return specialization_lq_metadata.sort_values(lq_variable,ascending=False).head(3)
         elif specialization_size<=3 and specialization_size>0:
-            st.markdown(f"You have not selected a region.. There are only {specialization_size} {st.session_state.get('detected_context')} specializations (LQ >1) in Europe:")
+            st.markdown(f"You have not selected a region.. There are only {specialization_size} {st.session_state.get('detected_context')} specializations in Europe:")
             return specialization_lq_metadata.sort_values(lq_variable,ascending=False)
         else:
-            st.markdown(f"You have not selected a region. There are no specializations (LQ >1) in Europe, but the closest (highest LQ) ones are: ")
+            st.markdown(f"You have not selected a region. There are no specializations (LQ >1) in Europe, but the closest ones are: ")
             return lq_metadata.sort_values(lq_variable,ascending=False).head(3)
 
 def retrieve_documents_with_query(context,query):
