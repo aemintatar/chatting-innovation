@@ -455,6 +455,8 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
         if low_lq.shape[0]:
             st.session_state['low_lq'] = low_lq
     filtered_df = filtered_df.drop(columns=['Zij','market_lq', 'tech_lq','Quantiles'],errors='ignore')
+    filtered_df = filtered_df.rename(columns={'Nice_subclass':'Product code','Nice_subclass_keyword':'Product description (keywords)','Nice_subclass_label_cleaned':'Product description',
+                                              'CPC_4digit':'Technology code','CPC_4digit_label_cleaned':'Technology description','region': 'Region (NUTS2)','country':'Country'})
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
 
