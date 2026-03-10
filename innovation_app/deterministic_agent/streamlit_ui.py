@@ -204,7 +204,7 @@ if st.session_state.get('selected_codes'):
         st.write('Up to five items can be selected')
         st.dataframe(st.session_state.get('scored_docs'))
         st.session_state['quantile_cutoff'] = 0.75
-        filtered_scored_docs = filter_by_quantile_session(scored_docs)
+        filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         st.dataframe(filtered_scored_docs)
         
 
