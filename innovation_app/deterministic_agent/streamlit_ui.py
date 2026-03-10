@@ -259,14 +259,6 @@ apprating = st.radio(
     horizontal=True
 )
 
-st.markdown("### ⭐ Rate this result")
-
-resultrating = st.radio(
-    "Overall rating",
-    options=[1, 2, 3, 4, 5],
-    format_func=lambda x: "⭐" * x,
-    horizontal=True
-)
 
 st.markdown("### Optional feedback")
 
@@ -292,7 +284,7 @@ if st.button("Submit feedback"):
     feedback = {
         "timestamp": datetime.now(),
         "apprating": apprating,
-        "resultrating": resultrating,
+        #"resultrating": resultrating,
         "met_expectations": expectation,
         "useful_for_task": useful,
         "comments": comments
