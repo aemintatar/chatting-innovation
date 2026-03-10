@@ -479,7 +479,7 @@ def display_filtered_documents(filtered_docs):
             hide_index=True,
             use_container_width=True,
             key="document_selector",
-            columns= {
+            column_config= {
                 "Select":st.column_config.Column(width="small"),
                 "Country": st.column_config.Column(width="small"),
                 "Region (NUTS2)": st.column_config.Column(width="small")
