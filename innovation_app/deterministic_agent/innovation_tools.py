@@ -454,9 +454,37 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
         low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
         if low_lq.shape[0]:
             st.session_state['low_lq'] = low_lq
-
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
+
+def display_filtered_documents():
+    filtered_docs = st.session_state.get('filtered_docs', pd.DataFrame())
+
+    if filtered_docs.empty:
+        st.info("No documents to display.")
+    else:
+        # ---- Select documents ----
+        df = filtered_docs.copy()
+
+        # Add checkbox column if it doesn't exist
+        if "Select" not in df.columns:
+            df.insert(0, "Select", False)
+
+        # Editable table with checkboxes
+        edited_df = st.data_editor(
+            df,
+            hide_index=True,
+            use_container_width=True,
+            key="document_selector"
+        )
+
+        selected_docs = edited_df[edited_df["Select"]]
+        st.session_state["selected_documents"] = selected_docs
+
+        if len(selected_docs) > 5:
+            st.warning("⚠️ You can select a maximum of 5 documents.")
+
+        st.write(f"Selected documents: {len(selected_docs)}/5")
 
 def specialized_regions():
     """This will find the regions with LQ scores higher 1 for the documents whose LQ score is lower than 1."""
