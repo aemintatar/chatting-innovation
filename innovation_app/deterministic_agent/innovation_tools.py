@@ -492,7 +492,7 @@ def display_filtered_documents(filtered_docs):
         if len(selected_docs) > 5:
             st.warning("⚠️ You can select a maximum of 5 documents.")
         else:
-            st.session_state["selected_documents"] = selected_docs
+            st.session_state["selected_docs"] = selected_docs
 
         st.write(f"Selected documents: {len(selected_docs)}/5")
 
