@@ -441,8 +441,8 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     quantile = st.session_state.get('quantile_cutoff', 0.9)
     context = st.session_state.get("detected_context", "Not specified")
     #selected_region = st.session_state.get("selected_region", None)
-    if 'Quantiles' not in results_df.columns:
-        raise ValueError("DataFrame must have a 'Quantiles' column")
+    #if 'Quantiles' not in results_df.columns:
+    #    raise ValueError("DataFrame must have a 'Quantiles' column")
     
     filtered_df = results_df[results_df['Quantiles'] >= quantile]
     #if selected_region:
