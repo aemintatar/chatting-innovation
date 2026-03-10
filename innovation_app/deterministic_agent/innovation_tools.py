@@ -480,14 +480,14 @@ def display_filtered_documents(filtered_docs):
             use_container_width=True,
             key="document_selector",
             column_config= { #this is not working
-                "Select":st.column_config.CheckboxColumn(width='small'),
+                "Select":st.column_config.CheckboxColumn(width=10),
                 "region":st.column_config.TextColumn(label="Region (NUTS2)",width=20),
                 'country':st.column_config.TextColumn(label="Country",width=20),
                 'Nice_subclass':st.column_config.TextColumn(label="Product code",width=20),
-                'Nice_subclass_keyword':st.column_config.TextColumn(label="Product description (keywords)",width=30),
-                'Nice_subclass_label':st.column_config.TextColumn(label="Product description",width=30),
+                'Nice_subclass_keyword':st.column_config.TextColumn(label="Product description (keywords)",width=200),
+                'Nice_subclass_label':st.column_config.TextColumn(label="Product description",width=300),
                 'CPC_4digit':st.column_config.TextColumn(label="Technology code",width=20),
-                'CPC_4digit_label':st.column_config.TextColumn(label="Technology description",width=30),
+                'CPC_4digit_label':st.column_config.TextColumn(label="Technology description",width=300),
             },
             column_order=["Select","region","country","Nice_subclass","Nice_subclass_keyword","Nice_subclass_label","CPC_4digit","CPC_4digit_label"]
         )

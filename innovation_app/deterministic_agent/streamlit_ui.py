@@ -216,23 +216,23 @@ if len(selected_df) > 0:
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
 
-if st.button("📝 Generate summaries"):
-    summary = summarize_documents()
-    st.session_state["summary"] = summary
-    st.success("✅ Summaries generated successfully!")
+    if st.button("📝 Generate summaries"):
+        summary = summarize_documents()
+        st.session_state["summary"] = summary
+        st.success("✅ Summaries generated successfully!")
 
-if 'summary' in st.session_state:
-    st.write("#### Summary")
-    st.write(st.session_state.get('summary'))
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    summary_file = summary_download()
-    st.session_state["summary_file"] = summary_file
-    st.download_button(
-        label="⬇️ Download Summary",
-        data=st.session_state.get("summary_file"),
-        file_name=f"summary_report_{timestamp}.txt",
-        mime="text/plain",
-    )    
+    if 'summary' in st.session_state:
+        st.write("#### Summary")
+        st.write(st.session_state.get('summary'))
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        summary_file = summary_download()
+        st.session_state["summary_file"] = summary_file
+        st.download_button(
+            label="⬇️ Download Summary",
+            data=st.session_state.get("summary_file"),
+            file_name=f"summary_report_{timestamp}.txt",
+            mime="text/plain",
+        )    
 
 st.divider()
 st.markdown("#### Restart Application")
