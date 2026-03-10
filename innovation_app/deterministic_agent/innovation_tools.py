@@ -287,12 +287,12 @@ def display_retrieved_documents():
         return
 
     st.markdown("##### Select documents to keep:")
-    st.write("Ordered by semantic distance; smaller distances indicate a closer semantic match between the query and the labels." )
+    st.write("Results are displayed starting with the most relevant matches to your query." )
 
     selected_codes_list = []
     for idx, doc in enumerate(docs):
         # Determine which field to use for selection
-        code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
+        code_field = 'Technology code' if context == 'technology' else 'Product Code'
         code = doc[code_field]
         selected_region = st.session_state.get("selected_region",None)
 
@@ -304,12 +304,12 @@ def display_retrieved_documents():
             if selected_region:
                 lq_variable = 'tech_lq'
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned','')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n **Technology description**: {doc.get('CPC_4digit_label_cleaned','')} ",
                 key=checkbox_key
             )
             else:
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n **CPC_4digit_label**: {doc.get('CPC_4digit_label_cleaned')}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n **Technology description**: {doc.get('CPC_4digit_label_cleaned','')}",
                 key=checkbox_key
             )
 
@@ -317,12 +317,12 @@ def display_retrieved_documents():
             if selected_region:
                 lq_variable = 'market_lq'
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **{lq_variable.capitalize()}**: {np.round(doc.get(lq_variable),2)}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n  **Product Description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
                 key=checkbox_key
             )
             else:
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Nice_subclass_keyword**: {doc.get('Nice_subclass_keyword','')}   \n   **Nice_subclass_label**: {doc.get('Nice_subclass_label_cleaned')}  \n  **Semantic Distance**: {np.round(doc.get('similarity'),2)}",
+                label=f"**{code_field}**: {code}  \n  **Product Description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
                 key=checkbox_key
             )
         if checked:
