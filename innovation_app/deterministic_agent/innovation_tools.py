@@ -100,6 +100,9 @@ def get_top_lq():
     context = st.session_state.get("detected_context").lower()
     selected_region = st.session_state.get('selected_region')
     region_list = st.session_state.get("META_NUTS2_INDEX_KEY")
+    column_renamig = {'country_en':'Country','nuts2':'Region (NUTS2)','cpc':'Technology code (CPC code 4 digit level)',
+                      'cpc_4digit_label':'Technology description','Nice_subclass':'Product code','Nice_subclass_label':'Product description'}
+    column_droping = ['tech_lq','market_lq']
     
     if context == 'technology':
         lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
@@ -124,16 +127,22 @@ def get_top_lq():
             st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
             specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop= True).head(3)
             specialization_lq_metadata.index = [1,2,3]
+            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping)
             return specialization_lq_metadata
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
             specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
             specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
+            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping)
             return specialization_lq_metadata
         else:
             st.markdown(f" There are no specializations in {st.session_state.get('selected_region')}, but the closest ones are: ")
             filtered_lq_metadata = filtered_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
             filtered_lq_metadata.index = [1,2,3]
+            filtered_lq_metadata = filtered_lq_metadata.rename(columns=column_renamig)
+            filtered_lq_metadata = filtered_lq_metadata.drop(columns=column_droping)
             return filtered_lq_metadata
     else:
         lq_metadata = pd.DataFrame(lq_metadata)
@@ -144,16 +153,22 @@ def get_top_lq():
             st.markdown(f"You have not selected a region. Here are the top 3 {st.session_state.get('detected_context')} specializations in Europe:")
             specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
             specialization_lq_metadata.index = [1,2,3]
+            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping)
             return specialization_lq_metadata
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f"You have not selected a region.. There are only {specialization_size} {st.session_state.get('detected_context')} specializations in Europe:")
             specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True)
             specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
+            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping)
             return specialization_lq_metadata
         else:
             st.markdown(f"You have not selected a region. There are no specializations in Europe, but the closest ones are: ")
             lq_metadata = lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
             lq_metadata.index = [1,2,3]
+            filtered_lq_metadata = filtered_lq_metadata.rename(columns=column_renamig)
+            filtered_lq_metadata = filtered_lq_metadata.drop(columns=column_droping)
             return lq_metadata
 
 def retrieve_documents_with_query(context,query):
