@@ -479,7 +479,7 @@ def display_filtered_documents(filtered_docs):
             hide_index=True,
             use_container_width=True,
             key="document_selector",
-            column_config= {
+            column_config= { #this is not working
                 "Select":st.column_config.CheckboxColumn(width=10),
                 "Country": st.column_config.TextColumn(width=20),
                 "Region (NUTS2)": st.column_config.TextColumn(width=10)
@@ -548,6 +548,7 @@ def specialized_regions():
     st.session_state['local_specialized'] = closest_specialized_regions_df
     return general_specialized_regions_df, closest_specialized_regions_df
 
+
 def summarize_documents() -> tuple[str, bytes]:
     """
     Summarize the provided documents and return the summary and downloadable file content.
@@ -555,30 +556,29 @@ def summarize_documents() -> tuple[str, bytes]:
     # Collect context from Streamlit state
     context = st.session_state.get("detected_context", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
-    filtered_df = st.session_state.get("filtered_docs")
-    
+    selected_df = st.session_state.get("selected_docs")
     
     #create the user text
     if context.lower() == 'technology':
         if region:
-            text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']]
+            text_df = selected_df[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']]
             general_specialized_df = st.session_state.get("general_specialized")
             local_specialized_df = st.session_state.get("local_specialized")
             general_specialized_documents = general_specialized_df.to_dict(orient='records')
             local_specialized_documents = local_specialized_df.to_dict(orient='records')
         else:
-            text_df = filtered_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']]
+            text_df = selected_df[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']]
             general_specialized_documents = None
             local_specialized_documents = None
     if context.lower() in ['good','service']:
         if region:
-            text_df = filtered_df[['CPC_4digit_label','tech_lq','Quantiles']]
+            text_df = selected_df[['CPC_4digit_label','tech_lq','Quantiles']]
             general_specialized_df = st.session_state.get("general_specialized")
             local_specialized_df = st.session_state.get("local_specialized")
             general_specialized_documents = general_specialized_df.to_dict(orient='records')
             local_specialized_documents = local_specialized_df.to_dict(orient='records')
         else:
-            text_df = filtered_df[['CPC_4digit_label','Quantiles']]
+            text_df = selected_df[['CPC_4digit_label','Quantiles']]
             general_specialized_documents = None
             local_specialized_documents = None
     
