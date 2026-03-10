@@ -247,7 +247,70 @@ if st.button("Restart App"):
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 
+# =========================
+# RATING
+# =========================
+st.markdown("### ⭐ Rate this App")
 
+apprating = st.radio(
+    "Overall rating",
+    options=[1, 2, 3, 4, 5],
+    format_func=lambda x: "⭐" * x,
+    horizontal=True
+)
+
+st.markdown("### ⭐ Rate this result")
+
+resultrating = st.radio(
+    "Overall rating",
+    options=[1, 2, 3, 4, 5],
+    format_func=lambda x: "⭐" * x,
+    horizontal=True
+)
+
+st.markdown("### Optional feedback")
+
+expectation = st.radio(
+    "Did this output meet your expectations?",
+    options=["Yes", "Partially", "No"],
+    index=None
+)
+
+useful = st.radio(
+    "Was this result useful for your task?",
+    options=["Yes", "Somewhat", "No"],
+    index=None
+)
+
+comments = st.text_area(
+    "Additional comments (optional)",
+    placeholder="Tell us how this could be improved..."
+)
+
+if st.button("Submit feedback"):
+    
+    feedback = {
+        "timestamp": datetime.now(),
+        "apprating": apprating,
+        "resultrating": resultrating,
+        "met_expectations": expectation,
+        "useful_for_task": useful,
+        "comments": comments
+    }
+
+    feedback_df = pd.DataFrame([feedback])
+
+    # Example: append to CSV
+    feedback_df.to_csv(
+        "feedback_log.csv",
+        mode="a",
+        header=not st.session_state.get("feedback_file_exists", False),
+        index=False
+    )
+
+    st.session_state["feedback_file_exists"] = True
+
+    st.success("✅ Thank you for your feedback!")
 
 # =========================
 # FOOTER
