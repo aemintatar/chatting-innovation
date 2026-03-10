@@ -321,12 +321,12 @@ def display_retrieved_documents():
             if selected_region:
                 lq_variable = 'market_lq'
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Product Description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
+                label=f"**{code_field}**: {code}  \n  **Product description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
                 key=checkbox_key
             )
             else:
                 checked = st.checkbox(
-                label=f"**{code_field}**: {code}  \n  **Product Description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
+                label=f"**{code_field}**: {code}  \n  **Product description (keywords)**: {doc.get('Nice_subclass_keyword','')}   \n   **Product description**: {doc.get('Nice_subclass_label_cleaned')}",
                 key=checkbox_key
             )
         if checked:
