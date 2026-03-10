@@ -440,20 +440,20 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
     quantile = st.session_state.get('quantile_cutoff', 0.9)
     context = st.session_state.get("detected_context", "Not specified")
-    selected_region = st.session_state.get("selected_region", None)
+    #selected_region = st.session_state.get("selected_region", None)
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
     
     filtered_df = results_df[results_df['Quantiles'] >= quantile]
-    if selected_region:
-        if context == 'technology':
-            lq_variable = 'market_lq'
-        else:
-            lq_variable = 'tech_lq'
+    #if selected_region:
+    if context == 'technology':
+        lq_variable = 'market_lq'
+    else:
+        lq_variable = 'tech_lq'
 
-        low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
-        if low_lq.shape[0]:
-            st.session_state['low_lq'] = low_lq
+    low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
+    if low_lq.shape[0]:
+        st.session_state['low_lq'] = low_lq
 
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
