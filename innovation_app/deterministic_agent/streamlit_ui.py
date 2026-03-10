@@ -206,33 +206,6 @@ if st.session_state.get('selected_codes'):
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
         display_filtered_documents(filtered_scored_docs)
-        
-
-
-# =========================
-# 🔹 STEP 4: Truncation using Percentailes
-# =========================
-
-# Default quantile 0.9 (top 10%)
-#if 'quantile_cutoff' not in st.session_state:
-#    st.session_state['quantile_cutoff'] = 0.9
-#if 'scored_docs' in st.session_state:
-#    quantile_cutoff = st.slider(
-#        "Select quantile cutoff.",
-#        min_value=0.0,
-#        max_value=1.0,
-#        value=st.session_state['quantile_cutoff'],
-#        step=0.01
-#    ) 
-#    if st.button("Apply Quantile Cutoff"):
-#        st.session_state['quantile_cutoff'] = quantile_cutoff
-#        scored_docs = st.session_state.get("scored_docs")
-#        text_for_summary = filter_by_quantile_session(scored_docs)
-#       st.success("Quantile Cutoff applied! You can summarize the truncated list of documents!")
-#        st.session_state['ready_for_summary'] = True
-#        st.divider()
-#        if 'low_lq' in st.session_state:
-#            specialized_regions()
 
 
 
