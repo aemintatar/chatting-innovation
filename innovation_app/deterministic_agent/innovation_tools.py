@@ -295,9 +295,9 @@ def display_retrieved_documents():
         code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
         code = doc[code_field]
         if code_field == 'CPC_4digit':
-            code_field == 'Technology code'
+            code_field = 'Technology code'
         else:
-            code_field == 'Product code'
+            code_field = 'Product code'
         selected_region = st.session_state.get("selected_region",None)
 
         # Unique checkbox key
