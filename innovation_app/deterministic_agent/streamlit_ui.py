@@ -206,6 +206,8 @@ if st.session_state.get('selected_codes'):
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
         display_filtered_documents(filtered_scored_docs)
+        if 'low_lq' in st.session_state:
+            specialized_regions()
 
 
 # =========================
