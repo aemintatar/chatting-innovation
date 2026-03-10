@@ -454,9 +454,9 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
         low_lq = filtered_df[filtered_df[lq_variable] < 1.0]
         if low_lq.shape[0]:
             st.session_state['low_lq'] = low_lq
-    filtered_df = filtered_df.drop(columns=['Zij','market_lq', 'tech_lq','Quantiles'],errors='ignore')
-    filtered_df = filtered_df.rename(columns={'Nice_subclass':'Product code','Nice_subclass_keyword':'Product description (keywords)','Nice_subclass_label':'Product description',
-                                              'CPC_4digit':'Technology code','CPC_4digit_label':'Technology description','region': 'Region (NUTS2)','country':'Country'})
+    #filtered_df = filtered_df.drop(columns=['Zij','market_lq', 'tech_lq','Quantiles'],errors='ignore')
+    #filtered_df = filtered_df.rename(columns={'Nice_subclass':'Product code','Nice_subclass_keyword':'Product description (keywords)','Nice_subclass_label':'Product description',
+    #                                          'CPC_4digit':'Technology code','CPC_4digit_label':'Technology description','region': 'Region (NUTS2)','country':'Country'})
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
 
@@ -481,8 +481,13 @@ def display_filtered_documents(filtered_docs):
             key="document_selector",
             column_config= { #this is not working
                 "Select":st.column_config.CheckboxColumn(width=10),
-                "Country": st.column_config.TextColumn(width=20),
-                "Region (NUTS2)": st.column_config.TextColumn(width=10)
+                "region":st.column_config.TextColumn(label="Region (NUTS2)",width=20),
+                'country':st.column_config.TextColumn(label="Country",width=20),
+                'Nice_subclass':st.column_config.TextColumn(label="Product code",width=20),
+                'Nice_subclass_keyword':st.column_config.TextColumn(label="Product description (keywords)",width=30),
+                'Nice_subclass_label':st.column_config.TextColumn(label="Product description",width=30),
+                'CPC_4digit':st.column_config.TextColumn(label="Technology code",width=20),
+                'CPC_4digit_label':st.column_config.TextColumn(label="Technology description",width=30),
             }
         )
 
