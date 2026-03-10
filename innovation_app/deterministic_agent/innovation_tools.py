@@ -292,7 +292,7 @@ def display_retrieved_documents():
     selected_codes_list = []
     for idx, doc in enumerate(docs):
         # Determine which field to use for selection
-        code_field = 'Technology code' if context == 'technology' else 'Product Code'
+        code_field = 'CPC_4digit' if context == 'technology' else 'Nice_subclass'
         code = doc[code_field]
         selected_region = st.session_state.get("selected_region",None)
 
