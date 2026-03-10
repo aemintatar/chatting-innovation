@@ -457,8 +457,8 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
 
-def display_filtered_documents():
-    filtered_docs = st.session_state.get('filtered_docs', pd.DataFrame())
+def display_filtered_documents(filtered_docs):
+    #filtered_docs = st.session_state.get('filtered_docs', pd.DataFrame())
 
     if filtered_docs.empty:
         st.info("No documents to display.")
