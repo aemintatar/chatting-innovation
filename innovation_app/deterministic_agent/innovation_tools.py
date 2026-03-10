@@ -480,7 +480,7 @@ def display_filtered_documents(filtered_docs):
             use_container_width=True,
             key="document_selector",
             column_config= {
-                "Select":st.column_config.TextColumn(width=10),
+                "Select":st.column_config.CheckboxColumn(width=10),
                 "Country": st.column_config.TextColumn(width=20),
                 "Region (NUTS2)": st.column_config.TextColumn(width=10)
             }
