@@ -122,7 +122,7 @@ def get_top_lq():
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
             st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True)
+            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).set_index([1,2,3])
             return specialization_lq_metadata.head(3)
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
