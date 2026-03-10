@@ -437,14 +437,15 @@ def scoring_documents() -> dict:
 def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     """
     Filters scored DataFrame based on the quantile set in session state.
+    Adds check mark for document selection.
     """
     quantile = st.session_state.get('quantile_cutoff', 0.9)
-    context = st.session_state.get("detected_context", "Not specified")
+    context = st.session_state.get("detected_context", "Not specified").lower()
     selected_region = st.session_state.get("selected_region", None)
     if 'Quantiles' not in results_df.columns:
         raise ValueError("DataFrame must have a 'Quantiles' column")
     
-    filtered_df = results_df[results_df['Quantiles'] >= quantile]
+    filtered_df = results_df[results_df['Quantiles'] >= quantile].copy().reset_index(drop=True)
     if selected_region:
         if context == 'technology':
             lq_variable = 'market_lq'
@@ -455,8 +456,34 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
         if low_lq.shape[0]:
             st.session_state['low_lq'] = low_lq
 
+    if filtered_df.empty:
+        st.session_state['filtered_docs'] = filtered_df
+        st.session_state['selected_filtered_docs'] = filtered_df
+        return filtered_df
+
+    display_df = filtered_df.copy()
+    if 'Select' not in display_df.columns:
+        display_df.insert(0, 'Select', False)
+
+    st.markdown("##### Select rows from filtered documents")
+    edited_df = st.data_editor(
+        display_df,
+        key='filtered_docs_selector',
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            'Select': st.column_config.CheckboxColumn('Select')
+        },
+        disabled=[col for col in display_df.columns if col != 'Select']
+    )
+
+    selected_filtered_docs = edited_df[edited_df['Select']].drop(columns=['Select'])
+    st.session_state['selected_filtered_docs'] = selected_filtered_docs
+
     st.session_state['filtered_docs'] = filtered_df
     return filtered_df
+
+
 
 def specialized_regions():
     """This will find the regions with LQ scores higher 1 for the documents whose LQ score is lower than 1."""
