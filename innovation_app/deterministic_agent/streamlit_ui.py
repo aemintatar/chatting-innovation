@@ -291,16 +291,18 @@ if st.button("Submit feedback"):
     }
 
     feedback_df = pd.DataFrame([feedback])
-
-    # Example: append to CSV
-    feedback_df.to_csv(
-        "feedback_log.csv",
-        mode="a",
-        header=not st.session_state.get("feedback_file_exists", False),
-        index=False
-    )
-
     st.session_state["feedback_file_exists"] = True
+
+    if "feedback_file_exists" in st.session_state and st.session_state["feedback_file_exists"]:
+        with open("feedback_log.csv", "rb") as f:
+            st.download_button(
+                label="📥 Download feedback CSV",
+                data=f,
+                file_name="feedback_log.csv",
+                mime="text/csv"
+            )
+
+    
 
     st.success("✅ Thank you for your feedback!")
 
