@@ -122,15 +122,19 @@ def get_top_lq():
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
             st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).set_index([1,2,3])
-            return specialization_lq_metadata.head(3)
+            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop= True).head(3)
+            specialization_lq_metadata.index = [1,2,3]
+            return specialization_lq_metadata
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True)
+            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
             return specialization_lq_metadata
         else:
             st.markdown(f" There are no specializations in {st.session_state.get('selected_region')}, but the closest ones are: ")
-            return filtered_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            filtered_lq_metadata = filtered_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            filtered_lq_metadata.index = [1,2,3]
+            return filtered_lq_metadata
     else:
         lq_metadata = pd.DataFrame(lq_metadata)
         lq_metadata = lq_metadata[['country_en','nuts2',lq_code_variable,label_variable,lq_variable]]
@@ -138,15 +142,19 @@ def get_top_lq():
         specialization_size = specialization_lq_metadata.shape[0]
         if specialization_size > 3:
             st.markdown(f"You have not selected a region. Here are the top 3 {st.session_state.get('detected_context')} specializations in Europe:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True)
-            return specialization_lq_metadata.head(3)
+            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            specialization_lq_metadata.index = [1,2,3]
+            return specialization_lq_metadata
         elif specialization_size<=3 and specialization_size>0:
             st.markdown(f"You have not selected a region.. There are only {specialization_size} {st.session_state.get('detected_context')} specializations in Europe:")
             specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True)
+            specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
             return specialization_lq_metadata
         else:
-            st.markdown(f"You have not selected a region. There are no specializations (LQ >1) in Europe, but the closest ones are: ")
-            return lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            st.markdown(f"You have not selected a region. There are no specializations in Europe, but the closest ones are: ")
+            lq_metadata = lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+            lq_metadata.index = [1,2,3]
+            return lq_metadata
 
 def retrieve_documents_with_query(context,query):
     '''
