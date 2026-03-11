@@ -610,38 +610,42 @@ def summarize_documents() -> tuple[str, bytes]:
         In case LQ scores are presents, a sample response can be of the form, assuming context is service or good
         From the technology perspective the summary is as follows:
         1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
-        - This category is based on documents in the 100th quantile.
-        - The LQ score for this topic is 0.535, which is less than 1, indicating that the region (Burgenland) is not specialized in this field.
+        - The region (Burgenland) is not specialized in this field.
         - In Europe, the top 3 locations specialized in this field are
-            - Île de France (France), LQ score of 1.124
+            - Île de France (France)
         - The loaction above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
 
         2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
-        - This category is based on documents in the 99th quantile.
-        - The LQ score for this topic is 1.328, which is higher than 1, indicating that the region is specialized in this field.
+        - The region is specialized in this field.
 
         3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
-        -This category is based on the documents in the 91st quantile. 
-        - The LQ score for this topic is lower than 1 (0.782), indicating that the region is not specialized in this field. 
+        - The region is not specialized in this field. 
         - In Europe, the top 3 locations specialized in this field are:
-            - Stuttgart (Germany), LQ score of 1.229, 
-            - Emilia-Romagna (Italy), LQ score of 1.156, 
-            - Düsseldorf (Germany), LQ score of 1.113. 
+            - Stuttgart (Germany)
+            - Emilia-Romagna (Italy)
+            - Düsseldorf (Germany)
         - The closest top 3 specialized locations to Burgenland (Austria) are:
-            - Veneto (Italy), LQ score of 1.019, distance of 415.52 km, 
-            - Stuttgart (Germany), LQ of 1.229, distance of 537.03 km,
-            - Emilia-Romagna (Italy) with an LQ of 1.156, distance of 540.74 km.
+            - Veneto (Italy) with a distance of 415.52 km, 
+            - Stuttgart (Germany) with a distance of 537.03 km,
+            - Emilia-Romagna (Italy) with a distance of 540.74 km.
         
         In case LQ scores are missing, a sample response can be of the form, assuming context is service or good:
         From the technology perspective the summary is as follows:
         1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
-        - This category is based on documents in the 100th quantile.
-
+        - This category is based on documents that are higly ranked in the retrieved documents, however whether the region is specialized in this category cannot be determined.
+        - In Europe, the top 3 locations specialized in this field are
+            - Île de France (France)
+        - The loaction above is also the closest in this filed with a distance of 105
         2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
-        - This category is based on documents in the 99th quantile.
-
-        3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
-        -This category is based on the documents in the 91st quantile. 
+        - This category is based on documents that are higly ranked in the retrieved documents, however whether the region is specialized in this category cannot be determined.
+        - In Europe, the top 3 locations specialized in this field are:
+            - Stuttgart (Germany)
+            - Emilia-Romagna (Italy)
+            - Düsseldorf (Germany)
+        - The closest top 3 specialized locations to Burgenland (Austria) are:
+            - Veneto (Italy) with a distance of 415.52 km, 
+            - Stuttgart (Germany) with a distance of 537.03 km,     
+            - Emilia-Romagna (Italy) with a distance of 540.74 km.
 
 
         Here are the documents needed for the summarty:
