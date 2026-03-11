@@ -200,7 +200,7 @@ if st.session_state.get('selected_codes'):
     if 'scored_docs' in st.session_state:
         st.write("#### Top Matches")
         st.write('Based on the PAT2TM concordance, we show the closest matches first. The further down you go, the less related they are to your question.')
-        st.write('Up to five items can be selected')
+        st.write('Up to five documents can be selected')
         st.session_state['quantile_cutoff'] = 0.75
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----

@@ -497,6 +497,7 @@ def display_filtered_documents(filtered_docs):
         elif len(selected_docs) == 0:
             st.warning("⚠️ Please select at least one document to proceed.")
         else:
+            selected_docs = edited_df[edited_df["Select"]]
             st.session_state["selected_docs"] = selected_docs
 
 
@@ -563,6 +564,7 @@ def summarize_documents() -> tuple[str, bytes]:
     context = st.session_state.get("detected_context", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
     selected_df = st.session_state.get("selected_docs")
+    print("Selected documents for summarization:", selected_df.shape)
     
     #create the user text
     if context.lower() == 'technology':
