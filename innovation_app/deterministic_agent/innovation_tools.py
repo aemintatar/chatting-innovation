@@ -589,62 +589,67 @@ def summarize_documents() -> tuple[str, bytes]:
     
     text = text_df.to_dict(orient='records')
     
-    user_message = f"""
-Summarize the following documents for a general audience (non-experts). 
-Avoid technical terminology and explain insights in clear, plain language.
+    user_message = f'''For a genral audience, summarize the following content which represents the most 
+        relevant documents to users query and auxiliary documents related to the top locations and closesr top locations when location information is present. 
+        They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
+        of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
+        When LQ scores are lower than 1 for some codes, you are expected to ALWAYS recommend top 3 specializations using the general specialized documents 
+        and also recommend closet top 3 specializations using the local specialized documents.
+        When you refer to those top 3 locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
+        Include distances in KM to your reponse to be transperent.
+        Do not include in the summary the codes, but only the descriptions.
+        Do not include in the summary the quantiles, but only the relative position of the documents (e.g. top 1, top 2, top 3, etc.).
+        Do not include in the summary the LQ scores, but only if the region is specialized or not, and if not, recommend the closest specialized regions.
+        \n
 
-The documents represent topics that are most relevant to the user’s query. 
-Some documents also contain information about how strongly different European regions focus on certain technologies or industries.
+        If the context is technology, give your summary from the market perspective (service, good).
+        If the context is good or service, then give your summary from the technology perspective. 
+        In your repsonse CLEARLY state your perspective. 
+        Learn from the samples below, how to respond and organize the repospond:
 
-Important interpretation rules:
-- A specialization score higher than 1 means the region is particularly strong in that field.
-- The higher the score above 1, the stronger the region’s specialization.
-- A score below 1 means the region is less focused on that field compared to other regions.
+        In case LQ scores are presents, a sample response can be of the form, assuming context is service or good
+        From the technology perspective the summary is as follows:
+        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
+        - This category is based on documents in the 100th quantile.
+        - The LQ score for this topic is 0.535, which is less than 1, indicating that the region (Burgenland) is not specialized in this field.
+        - In Europe, the top 3 locations specialized in this field are
+            - Île de France (France), LQ score of 1.124
+        - The loaction above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
 
-If the region is not specialized in a topic (score below 1), you must:
-1. Recommend the top 3 European regions that are strongest in that field.
-2. Also recommend the 3 closest regions that are strong in that field geographically.
+        2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
+        - This category is based on documents in the 99th quantile.
+        - The LQ score for this topic is 1.328, which is higher than 1, indicating that the region is specialized in this field.
 
-When referring to regions:
-- Use only the public region names (e.g., "Stuttgart", "Île-de-France").
-- Do NOT use technical region codes or country codes.
+        3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
+        -This category is based on the documents in the 91st quantile. 
+        - The LQ score for this topic is lower than 1 (0.782), indicating that the region is not specialized in this field. 
+        - In Europe, the top 3 locations specialized in this field are:
+            - Stuttgart (Germany), LQ score of 1.229, 
+            - Emilia-Romagna (Italy), LQ score of 1.156, 
+            - Düsseldorf (Germany), LQ score of 1.113. 
+        - The closest top 3 specialized locations to Burgenland (Austria) are:
+            - Veneto (Italy), LQ score of 1.019, distance of 415.52 km, 
+            - Stuttgart (Germany), LQ of 1.229, distance of 537.03 km,
+            - Emilia-Romagna (Italy) with an LQ of 1.156, distance of 540.74 km.
+        
+        In case LQ scores are missing, a sample response can be of the form, assuming context is service or good:
+        From the technology perspective the summary is as follows:
+        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
+        - This category is based on documents in the 100th quantile.
 
-For transparency:
-- Include the specialization score.
-- Include distances in kilometers when referring to nearby regions.
+        2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
+        - This category is based on documents in the 99th quantile.
 
-Perspective rules:
-- If the context refers to a **technology**, explain the summary from a **market perspective** (what products or services could emerge).
-- If the context refers to a **product or service**, explain the summary from a **technology perspective** (what technologies enable it).
+        3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
+        -This category is based on the documents in the 91st quantile. 
 
-Clearly state which perspective you are using.
 
-Structure your response as follows:
-
-From the [technology/market] perspective, the summary is as follows:
-
-1. **Topic name**
-- Brief explanation of what this topic involves in simple terms.
-- Mention that the insight is based on highly relevant documents.
-- If the region is specialized:
-    - Explain that the region has a strong focus in this area.
-- If the region is not specialized:
-    - Explain that other European regions are stronger in this area.
-    - List the top 3 specialized regions with their specialization scores.
-    - List the 3 closest specialized regions and include their distance in km.
-
-If specialization scores are missing, simply summarize the key topics without discussing regional strengths.
-
-Documents for the summary:
-
-Context: {context}
-
-Collection of documents: {text}
-
-General specialized documents: {general_specialized_documents}
-
-Local specialized documents: {local_specialized_documents}
-"""
+        Here are the documents needed for the summarty:
+        Context: {context}
+        Collection of documents: {text}
+        General specialized documents: {general_specialized_documents}
+        Local specialized documents: {local_specialized_documents}
+        '''
 
     # Generate the summary
     response = client.chat.completions.create(
