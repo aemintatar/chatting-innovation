@@ -196,7 +196,7 @@ display_retrieved_documents()
 if st.session_state.get('selected_codes'):
     if st.button("📊 Score Selected Documents"):
         scored_docs = scoring_documents()  # scoring_tool saves results to session_state['text_to_summarize']
-        st.success("✅ Documents Scored successfully!")
+        st.success("✅ Documents scored successfully!")
         st.session_state['scored_docs'] = scored_docs
     if 'scored_docs' in st.session_state:
         st.write("#### Top Matches")
@@ -243,8 +243,6 @@ st.divider()
 # =========================
 if st.button("Give feedback"):
     st.session_state["show_feedback"] = True
-
-if st.ession_state.get("show_feedback"):
     st.markdown("#### Rate this App")
 
     expectation = st.radio(
