@@ -185,8 +185,8 @@ if st.button("🔍 Retrieve Documents"):
 # =========================
 # 🔹 STEP 2: Display & Select
 # =========================
-
-display_retrieved_documents()
+if st.session_state.get('retrieved documents'):
+    display_retrieved_documents()
 
 
 # =========================
