@@ -120,11 +120,13 @@ st.markdown("#### Search Parameters")
 #  context / country / region selectors (main frame)
 
 col1, col2, col3 = st.columns(3)
-
+st.session_state["selected_region_index"] = 0  # Initialize selected region index in session state
+st.session_state["selected_country_index"] = 0  # Initialize selected country index in session state
+st.session_state["selected_context_index"] = 0  # Initialize selected context index in session state
 with col1:
     context_value = st.selectbox(
     "**Context** (required)",["-- None --", "Technology", "Service", "Good"],
-    index=0,
+    index=st.session_state.get("selected_context_index", 0),
     key="sidebar_context"
 )
 with col2:
@@ -134,7 +136,7 @@ with col2:
     country_options = ["-- None --"] + country_names
     country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
-                           index=0,
+                           index=st.session_state.get("selected_country_index", 0),
                            key="sidebar_country")
 with col3:
     region_options = ["-- None --"]
@@ -144,7 +146,7 @@ with col3:
     region_options = [option for option in region_options if option!='Extra-Regio NUTS 2']
     region_value = st.selectbox("**Region** (optional)", 
                           region_options, 
-                          index=0,
+                          index=st.session_state.get("selected_region_index", 0),
                           key="sidebar_region")
 # Apply context button
 if st.button("Apply Parameters"):
@@ -162,7 +164,7 @@ if 'detected_context' in st.session_state:
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
-prompt = st.text_area("Enter your product or technology idea:",key="query")
+prompt = st.text_area("Enter your product or technology idea:",key="query",placeholder="Describe your idea in detail...")
 
 
 # =========================
