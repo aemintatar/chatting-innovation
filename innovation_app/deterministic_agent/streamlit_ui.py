@@ -196,7 +196,7 @@ display_retrieved_documents()
 if st.session_state.get('selected_codes'):
     if st.button("📊 Score Selected Documents"):
         scored_docs = scoring_documents()  # scoring_tool saves results to session_state['text_to_summarize']
-        st.success("✅ Quantiles calculated successfully!")
+        st.success("✅ Documents Scored successfully!")
         st.session_state['scored_docs'] = scored_docs
     if 'scored_docs' in st.session_state:
         st.write("#### Top Matches")
@@ -237,8 +237,71 @@ if len(selected_df) > 0:
         )    
 
 st.divider()
-st.markdown("#### Restart Application")
 
+# =========================
+# RATING
+# =========================
+if st.button("Give feedback"):
+    st.session_state["show_feedback"] = True
+
+if st.ession_state.get("show_feedback"):
+    st.markdown("#### Rate this App")
+
+    expectation = st.radio(
+        "Did this output meet your expectations?",
+        options=["Yes", "Partially", "No"],
+        index=None
+    )
+
+    useful = st.radio(
+        "Was this result useful for your task?",
+        options=["Yes", "Somewhat", "No"],
+        index=None
+    )
+
+    comments = st.text_area(
+        "Additional comments (optional)",
+        placeholder="Tell us how this could be improved..."
+    )
+
+    apprating = st.radio(
+        "Overall rating",
+        options=[1, 2, 3, 4, 5],
+        format_func=lambda x: "⭐" * x,
+        horizontal=True
+    )
+
+    if st.button("Submit feedback"):
+        
+        feedback = {
+            "timestamp": datetime.now(),
+            "apprating": apprating,
+            "met_expectations": expectation,
+            "useful_for_task": useful,
+            "comments": comments
+        }
+
+        feedback_df = pd.DataFrame([feedback])
+        st.session_state["feedback_file_exists"] = True
+
+        if "feedback_file_exists" in st.session_state and st.session_state["feedback_file_exists"]:
+            with open("feedback_log.csv", "rb") as f:
+                st.download_button(
+                    label="📥 Download feedback CSV",
+                    data=f,
+                    file_name="feedback_log.csv",
+                    mime="text/csv"
+                )
+
+        
+
+        st.success("✅ Thank you for your feedback!")
+
+st.markdown("#### Restart Application")
+# =========================
+# RESTART
+# =========================
+st.divider()
 if st.button("Restart App"):
     # Clear all Streamlit session state variables
     for key in list(st.session_state.keys()):
@@ -247,64 +310,7 @@ if st.button("Restart App"):
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 
-# =========================
-# RATING
-# =========================
-st.markdown("### ⭐ Rate this App")
 
-apprating = st.radio(
-    "Overall rating",
-    options=[1, 2, 3, 4, 5],
-    format_func=lambda x: "⭐" * x,
-    horizontal=True
-)
-
-
-st.markdown("### Optional feedback")
-
-expectation = st.radio(
-    "Did this output meet your expectations?",
-    options=["Yes", "Partially", "No"],
-    index=None
-)
-
-useful = st.radio(
-    "Was this result useful for your task?",
-    options=["Yes", "Somewhat", "No"],
-    index=None
-)
-
-comments = st.text_area(
-    "Additional comments (optional)",
-    placeholder="Tell us how this could be improved..."
-)
-
-if st.button("Submit feedback"):
-    
-    feedback = {
-        "timestamp": datetime.now(),
-        "apprating": apprating,
-        #"resultrating": resultrating,
-        "met_expectations": expectation,
-        "useful_for_task": useful,
-        "comments": comments
-    }
-
-    feedback_df = pd.DataFrame([feedback])
-    st.session_state["feedback_file_exists"] = True
-
-    if "feedback_file_exists" in st.session_state and st.session_state["feedback_file_exists"]:
-        with open("feedback_log.csv", "rb") as f:
-            st.download_button(
-                label="📥 Download feedback CSV",
-                data=f,
-                file_name="feedback_log.csv",
-                mime="text/csv"
-            )
-
-    
-
-    st.success("✅ Thank you for your feedback!")
 
 # =========================
 # FOOTER
