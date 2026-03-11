@@ -490,7 +490,7 @@ def display_filtered_documents(filtered_docs):
         )
 
         selected_docs = edited_df[edited_df["Select"]]
-        st.dataframe(selected_docs)  # Display selected documents
+        #st.dataframe(selected_docs)  # Display selected documents
 
         if len(selected_docs) > 5:
             st.warning("⚠️ You can select a maximum of 5 documents.")
