@@ -209,7 +209,7 @@ if st.session_state.get('selected_codes'):
         if 'low_lq' in st.session_state:
             specialized_regions()
 
-    st.write(f"Selected documents: {len(selected_docs)}/5")
+    st.write(f"Selected documents: {len(st.session_state.get("selected_docs"))}/5")
 # =========================
 # 🔹 STEP 4: Summarize & Download
 # =========================
