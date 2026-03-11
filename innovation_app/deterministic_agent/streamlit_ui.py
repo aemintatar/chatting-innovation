@@ -205,18 +205,16 @@ if st.session_state.get('selected_codes'):
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
         display_filtered_documents(filtered_scored_docs)
-        st.write(f"Selected documents: {len(st.session_state.get("selected_docs"))}/5")
-        st.write(f"Selected documents: {len(st.session_state.get("selected_docs"))}/5")
         
         if 'low_lq' in st.session_state:
             specialized_regions()
 
-    
 # =========================
 # 🔹 STEP 4: Summarize & Download
 # =========================
 
 if st.session_state.get("selected_docs"):
+
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
 
