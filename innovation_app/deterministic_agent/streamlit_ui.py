@@ -321,6 +321,9 @@ if st.button("Restart App"):
     # Clear all Streamlit session state variables
     for key in list(st.session_state.keys()):
         del st.session_state[key]
+    st.session_state.reset_context_counter = st.session_state.get("reset_context_counter", 0) + 1
+    st.session_state.reset_country_counter = st.session_state.get("reset_country_counter", 0) + 1
+    st.session_state.reset_region_counter = st.session_state.get("reset_region_counter", 0) + 1
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 
