@@ -114,13 +114,6 @@ if "data_loaded" not in st.session_state:
         st.session_state["data_loaded"] = True
         st.success("✅ Data loaded successfully!")
 
-if "reset_context_counter" not in st.session_state:
-    st.session_state.reset_context_counter = 0
-if "reset_country_counter" not in st.session_state:
-    st.session_state.reset_country_counter = 0
-if "reset_region_counter" not in st.session_state:
-    st.session_state.reset_region_counter = 0
-
 st.divider() # A visual separator.
 st.markdown("#### Search Parameters")
 #  context / country / region selectors (main frame)
@@ -131,7 +124,7 @@ with col1:
     context_value = st.selectbox(
     "**Context** (required)",["-- None --", "Technology", "Service", "Good"],
     index=0,
-    key=f"sidebar_context_{st.session_state.reset_context_counter}"
+    key=f"sidebar_context"
 )
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
@@ -141,7 +134,7 @@ with col2:
     country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
                            index=0,
-                           key=f"sidebar_country_{st.session_state.reset_country_counter}")
+                           key=f"sidebar_country")
 with col3:
     region_options = ["-- None --"]
     if country_value and not country_value.startswith("--"):
@@ -151,7 +144,7 @@ with col3:
     region_value = st.selectbox("**Region** (optional)", 
                           region_options, 
                           index=0,
-                          key=f"sidebar_region_{st.session_state.reset_region_counter}")
+                          key=f"sidebar_region")
 # Apply context button
 if st.button("Apply Parameters"):
     st.session_state["detected_context"] = None if context_value.startswith("--") else context_value.lower()
@@ -211,22 +204,25 @@ if st.session_state.get('selected_codes'):
         st.session_state['quantile_cutoff'] = 0.75
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
-        display_filtered_documents(filtered_scored_docs)
+        selected_docs = display_filtered_documents(filtered_scored_docs)
+        st.session_state["selected_docs"] = selected_docs
         if 'low_lq' in st.session_state:
             specialized_regions()
 
-
+    st.write(f"Selected documents: {len(selected_docs)}/5")
 # =========================
 # 🔹 STEP 4: Summarize & Download
 # =========================
-selected_df = st.session_state.get("selected_docs")
-if len(selected_df) > 0:
+
+if len(st.session_state.get("selected_docs")) > 0:
+    selected_df = st.session_state.get("selected_docs")
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
 
     if st.button("📝 Generate summaries"):
-        summary = summarize_documents()
-        st.session_state["summary"] = summary
+        with st.spinner("Generating summary... Please wait."):
+            summary = summarize_documents()
+            st.session_state["summary"] = summary
         st.success("✅ Summaries generated successfully!")
 
     if 'summary' in st.session_state:
@@ -321,9 +317,6 @@ if st.button("Restart App"):
     # Clear all Streamlit session state variables
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.session_state.reset_context_counter = st.session_state.get("reset_context_counter", 0) + 1
-    st.session_state.reset_country_counter = st.session_state.get("reset_country_counter", 0) + 1
-    st.session_state.reset_region_counter = st.session_state.get("reset_region_counter", 0) + 1
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 

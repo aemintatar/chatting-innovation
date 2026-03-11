@@ -490,14 +490,13 @@ def display_filtered_documents(filtered_docs):
         )
 
         selected_docs = edited_df[edited_df["Select"]]
-        st.session_state["selected_documents"] = selected_docs
 
         if len(selected_docs) > 5:
             st.warning("⚠️ You can select a maximum of 5 documents.")
         else:
-            st.session_state["selected_docs"] = selected_docs
+            return selected_docs
 
-        st.write(f"Selected documents: {len(selected_docs)}/5")
+        
 
 def specialized_regions():
     """This will find the regions with LQ scores higher 1 for the documents whose LQ score is lower than 1."""
@@ -613,13 +612,21 @@ def summarize_documents() -> tuple[str, bytes]:
         - The region (Burgenland) is not specialized in this field.
         - In Europe, the top 3 locations specialized in this field are
             - Île de France (France)
-        - The loaction above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
+        - The location above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
 
         2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
-        - The region is specialized in this field.
+        - The region is **specialized** in this field.
+        - In Europe, the top 3 locations specialized in this field are:
+            - Cataluña (Spain)
+            - Toscana (Italy)
+            - Freiburg (Germany)
+        - The closest top 3 specialized locations to the region are:
+            - Freiburg (Germany) with a distance of 1494.17 km,
+            - Piemonte (Italy) with a distance of 1765.02 km,
+            - Toscana (Italy) with a distance of 1781.14 km.
 
         3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
-        - The region is not specialized in this field. 
+        - The region is **not specialized** in this field. 
         - In Europe, the top 3 locations specialized in this field are:
             - Stuttgart (Germany)
             - Emilia-Romagna (Italy)
