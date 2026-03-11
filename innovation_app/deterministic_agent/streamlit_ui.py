@@ -213,7 +213,7 @@ if st.session_state.get('selected_codes'):
 # 🔹 STEP 4: Summarize & Download
 # =========================
 
-if st.session_state.get("selected_docs"):
+if len(st.session_state.get("selected_docs")) > 0:
 
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
