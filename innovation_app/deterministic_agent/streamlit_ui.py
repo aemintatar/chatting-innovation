@@ -241,6 +241,8 @@ st.divider()
 # =========================
 # RATING
 # =========================
+st.write("#### Feedback")
+st.write("Your feedback helps us improve the app! Please take a moment to share your thoughts. We are not collecting any personally identifiable information, and all feedback is anonymous.")
 if st.button("Give feedback"):
     st.session_state["show_feedback"] = True
     st.markdown("#### Rate this App")
@@ -253,13 +255,14 @@ if st.button("Give feedback"):
 
     useful = st.radio(
         "Was this result useful for your task?",
-        options=["Yes", "Somewhat", "No"],
+        options=["Yes", "Partially", "No"],
         index=None
     )
 
-    comments = st.text_area(
-        "Additional comments (optional)",
-        placeholder="Tell us how this could be improved..."
+    practical = st.radio(
+        "Was this app confusing to use?",
+        options=["Yes", "Partially", "No"],
+        index=None
     )
 
     apprating = st.radio(
@@ -269,6 +272,13 @@ if st.button("Give feedback"):
         horizontal=True
     )
 
+    comments = st.text_area(
+        "Additional comments (optional)",
+        placeholder="Tell us how this could be improved..."
+    )
+
+
+
     if st.button("Submit feedback"):
         
         feedback = {
@@ -276,7 +286,8 @@ if st.button("Give feedback"):
             "apprating": apprating,
             "met_expectations": expectation,
             "useful_for_task": useful,
-            "comments": comments
+            "comments": comments,
+            "practical_to_use": practical
         }
 
         feedback_df = pd.DataFrame([feedback])
