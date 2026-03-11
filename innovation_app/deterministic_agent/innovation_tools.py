@@ -120,30 +120,33 @@ def get_top_lq():
                 region_code = region['NUTS Code']
                 break 
         filtered_lq_metadata = pd.DataFrame([meta for meta in lq_metadata if meta['nuts2_code'] == region_code])
-        filtered_lq_metadata = filtered_lq_metadata[[lq_code_variable,label_variable,lq_variable]]
-        specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1]
-        specialization_size = specialization_lq_metadata.shape[0]
-        if specialization_size > 3:
-            st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop= True).head(3)
-            specialization_lq_metadata.index = [1,2,3]
-            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
-            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping,errors='ignore')
-            return specialization_lq_metadata
-        elif specialization_size<=3 and specialization_size>0:
-            st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
-            specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
-            specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
-            specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
-            specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping,errors='ignore')
-            return specialization_lq_metadata
+        if filtered_lq_metadata.empty:
+             st.markdown(f" No {st.session_state.get('detected_context')} specializations found in {st.session_state.get('selected_region')}. Please select another set of parameters.")
         else:
-            st.markdown(f" There are no specializations in {st.session_state.get('selected_region')}, but the closest ones are: ")
-            filtered_lq_metadata = filtered_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
-            filtered_lq_metadata.index = [1,2,3]
-            filtered_lq_metadata = filtered_lq_metadata.rename(columns=column_renamig)
-            filtered_lq_metadata = filtered_lq_metadata.drop(columns=column_droping,errors='ignore')
-            return filtered_lq_metadata
+            filtered_lq_metadata = filtered_lq_metadata[[lq_code_variable,label_variable,lq_variable]]
+            specialization_lq_metadata = filtered_lq_metadata[filtered_lq_metadata[lq_variable]>1]
+            specialization_size = specialization_lq_metadata.shape[0]
+            if specialization_size > 3:
+                st.markdown(f" Based on the parameters, here are the top 3 {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
+                specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop= True).head(3)
+                specialization_lq_metadata.index = [1,2,3]
+                specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+                specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping,errors='ignore')
+                return specialization_lq_metadata
+            elif specialization_size<=3 and specialization_size>0:
+                st.markdown(f" There are only {specialization_size} {st.session_state.get('detected_context')} specializations in {st.session_state.get('selected_region')}:")
+                specialization_lq_metadata = specialization_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+                specialization_lq_metadata.index = range(1,len(specialization_lq_metadata))
+                specialization_lq_metadata = specialization_lq_metadata.rename(columns=column_renamig)
+                specialization_lq_metadata = specialization_lq_metadata.drop(columns=column_droping,errors='ignore')
+                return specialization_lq_metadata
+            else:
+                st.markdown(f" There are no specializations in {st.session_state.get('selected_region')}, but the closest ones are: ")
+                filtered_lq_metadata = filtered_lq_metadata.sort_values(lq_variable,ascending=False).reset_index(drop=True).head(3)
+                filtered_lq_metadata.index = [1,2,3]
+                filtered_lq_metadata = filtered_lq_metadata.rename(columns=column_renamig)
+                filtered_lq_metadata = filtered_lq_metadata.drop(columns=column_droping,errors='ignore')
+                return filtered_lq_metadata
     else:
         lq_metadata = pd.DataFrame(lq_metadata)
         lq_metadata = lq_metadata[['country_en','nuts2',lq_code_variable,label_variable,lq_variable]]
