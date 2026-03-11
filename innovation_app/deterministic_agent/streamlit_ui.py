@@ -114,20 +114,24 @@ if "data_loaded" not in st.session_state:
         st.session_state["data_loaded"] = True
         st.success("✅ Data loaded successfully!")
 
+if "reset_context_counter" not in st.session_state:
+    st.session_state.reset_context_counter = 0
+if "reset_country_counter" not in st.session_state:
+    st.session_state.reset_country_counter = 0
+if "reset_region_counter" not in st.session_state:
+    st.session_state.reset_region_counter = 0
 
 st.divider() # A visual separator.
 st.markdown("#### Search Parameters")
 #  context / country / region selectors (main frame)
 
 col1, col2, col3 = st.columns(3)
-st.session_state["selected_region_index"] = 0  # Initialize selected region index in session state
-st.session_state["selected_country_index"] = 0  # Initialize selected country index in session state
-st.session_state["selected_context_index"] = 0  # Initialize selected context index in session state
+
 with col1:
     context_value = st.selectbox(
     "**Context** (required)",["-- None --", "Technology", "Service", "Good"],
-    index=st.session_state.get("selected_context_index", 0),
-    key="sidebar_context"
+    index=0,
+    key=f"sidebar_context_{st.session_state.reset_context_counter}"
 )
 with col2:
     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
@@ -136,8 +140,8 @@ with col2:
     country_options = ["-- None --"] + country_names
     country_value = st.selectbox("**Country** (optional)", 
                            country_options, 
-                           index=st.session_state.get("selected_country_index", 0),
-                           key="sidebar_country")
+                           index=0,
+                           key=f"sidebar_country_{st.session_state.reset_country_counter}")
 with col3:
     region_options = ["-- None --"]
     if country_value and not country_value.startswith("--"):
@@ -146,8 +150,8 @@ with col3:
     region_options = [option for option in region_options if option!='Extra-Regio NUTS 2']
     region_value = st.selectbox("**Region** (optional)", 
                           region_options, 
-                          index=st.session_state.get("selected_region_index", 0),
-                          key="sidebar_region")
+                          index=0,
+                          key=f"sidebar_region_{st.session_state.reset_region_counter}")
 # Apply context button
 if st.button("Apply Parameters"):
     st.session_state["detected_context"] = None if context_value.startswith("--") else context_value.lower()
@@ -164,7 +168,7 @@ if 'detected_context' in st.session_state:
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
-prompt = st.text_area("",key="query",placeholder="Enter your product or technology idea.")
+prompt = st.text_area("Enter your product or technology idea.",key="query")
 
 
 # =========================
@@ -317,9 +321,6 @@ if st.button("Restart App"):
     # Clear all Streamlit session state variables
     for key in list(st.session_state.keys()):
         del st.session_state[key]
-    st.session_state["selected_region_index"] = 0  # Initialize selected region index in session state
-    st.session_state["selected_country_index"] = 0  # Initialize selected country index in session state
-    st.session_state["selected_context_index"] = 0
     st.success("App has been restarted. Resetting all inputs...")
     st.rerun()
 
