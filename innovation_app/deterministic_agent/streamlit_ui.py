@@ -164,7 +164,7 @@ if 'detected_context' in st.session_state:
 
 st.divider() # A visual separator.
 st.markdown("#### Query")
-prompt = st.text_area(key="query",placeholder="Enter your product or technology idea.")
+prompt = st.text_area("",key="query",placeholder="Enter your product or technology idea.")
 
 
 # =========================
