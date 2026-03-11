@@ -494,10 +494,11 @@ def display_filtered_documents(filtered_docs):
 
         if len(selected_docs) > 5:
             st.warning("⚠️ You can select a maximum of 5 documents.")
+        elif len(selected_docs) == 0:
+            st.warning("⚠️ Please select at least one document to proceed.")
         else:
             st.session_state["selected_docs"] = selected_docs
 
-        st.write(f"Selected documents: {len(selected_docs)}/5")
 
 def specialized_regions():
     """This will find the regions with LQ scores higher 1 for the documents whose LQ score is lower than 1."""
