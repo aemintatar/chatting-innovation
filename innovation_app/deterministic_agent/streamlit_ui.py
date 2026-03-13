@@ -206,7 +206,7 @@ if st.session_state.get('selected_codes'):
         # ---- Add checkbox selection ----
         display_filtered_documents(filtered_scored_docs)
         
-        if 'low_lq' in st.session_state:
+        if 'low_lq' in st.session_state and 'selected_docs' in st.session_state:
             specialized_regions()
 
 # =========================
@@ -218,7 +218,7 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
 
-    if st.button("📝 Generate summaries"):
+    if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
             summary = summarize_documents()
             st.session_state["summary"] = summary

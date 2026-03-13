@@ -494,14 +494,14 @@ def display_filtered_documents(filtered_docs):
 
         selected_docs = edited_df[edited_df["Select"]]
         #st.dataframe(selected_docs)  # Display selected documents
-
-        if len(selected_docs) > 5:
-            st.warning("⚠️ You can select a maximum of 5 documents.")
-        elif len(selected_docs) == 0:
-            st.warning("⚠️ Please select at least one document to proceed.")
-        else:
-            selected_docs = edited_df[edited_df["Select"]]
-            st.session_state["selected_docs"] = selected_docs
+        if st.button("✅ Confirm selected documents"):
+            if len(selected_docs) > 5:
+                st.warning("⚠️ You can select a maximum of 5 documents.")
+            elif len(selected_docs) == 0:
+                st.warning("⚠️ Please select at least one document to proceed.")
+            else:
+                selected_docs = edited_df[edited_df["Select"]]
+                st.session_state["selected_docs"] = selected_docs
 
 
 def specialized_regions():
@@ -513,10 +513,9 @@ def specialized_regions():
     selected_code = region_list['NUTS Code'][region_list['NUTS label']==selected_region].values[0] #finds the NUTS2 code of the region
     low_lq = st.session_state.get('low_lq',None)
 
-    filtered_df = st.session_state.get("filtered_docs")
+    filtered_df = st.session_state.get("selected_docs",pd.DataFrame())
     distance = pd.DataFrame(st.session_state['META_DISTANCE_INDEX_KEY'])
     distance = distance[distance['nuts2_1'] == selected_code]
-
     if context == 'technology':
         lq_variable = 'market_lq'
         lq_code_variable = 'Nice_subclass'
@@ -544,12 +543,13 @@ def specialized_regions():
     general_specialized_regions_df = specialized_regions.groupby(lq_code_variable,group_keys=False).apply(lambda g:g.nlargest(3,lq_variable))
     #drop unnecessary columns to improve LLM response time and the number token processed tokens
     general_specialized_regions_df = general_specialized_regions_df[['nuts2_code', 'nuts2', 'country_en',lq_code_variable,lq_variable]]
+    general_specialized_regions_df = general_specialized_regions_df[general_specialized_regions_df[lq_code_variable].isin(filtered_df[code_variable])]
+    
 
     
     specialized_regions = specialized_regions.merge(right=distance,left_on='nuts2_code',right_on='nuts2_2')
     specialized_regions = specialized_regions[[lq_code_variable,'nuts2_2','nuts2','country_en',lq_variable,'distance_km']]
     specialized_regions = filtered_df.merge(right=specialized_regions,left_on = code_variable,right_on=lq_code_variable,suffixes = ["_origin",'_closest'])
-
     closest_specialized_regions_df = specialized_regions.groupby(code_variable,group_keys=False).apply(lambda g:g.nsmallest(3,'distance_km'))
     #drop unnecessary columns to improve LLM response time and the number token processed tokens
     closest_specialized_regions_df =closest_specialized_regions_df[[lq_code_variable,'nuts2_2', 'nuts2', 'country_en', lq_variable+'_closest', 'distance_km']]
@@ -567,8 +567,6 @@ def summarize_documents() -> tuple[str, bytes]:
     context = st.session_state.get("detected_context", "Not specified")
     region = st.session_state.get("selected_region", "Not specified")
     selected_df = st.session_state.get("selected_docs")
-    print("Selected documents for summarization:", selected_df.shape)
-    
     #create the user text
     if context.lower() == 'technology':
         if region:
@@ -594,16 +592,15 @@ def summarize_documents() -> tuple[str, bytes]:
             local_specialized_documents = None
     
     text = text_df.to_dict(orient='records')
-    
-    user_message = f'''For a genral audience, summarize the following content which represents the most 
-        relevant documents to users query and auxiliary documents related to the top locations and closesr top locations when location information is present. 
+
+    user_message = f'''Summarize the following content which represents the most 
+        relevant documents to users query and auxiliary documents related to the top locations and closest top locations when location information is present. 
         They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
         of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
         When LQ scores are lower than 1 for some codes, you are expected to ALWAYS recommend top 3 specializations using the general specialized documents 
         and also recommend closet top 3 specializations using the local specialized documents.
         When you refer to those top 3 locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
-        Include distances in KM to your reponse to be transperent.
-        Do not include in the summary the codes, but only the descriptions.
+        Include distances in KM to your response to be transparent.
         Do not include in the summary the quantiles, but only the relative position of the documents (e.g. top 1, top 2, top 3, etc.).
         Do not include in the summary the LQ scores, but only if the region is specialized or not, and if not, recommend the closest specialized regions.
         \n
@@ -611,15 +608,15 @@ def summarize_documents() -> tuple[str, bytes]:
         If the context is technology, give your summary from the market perspective (service, good).
         If the context is good or service, then give your summary from the technology perspective. 
         In your repsonse CLEARLY state your perspective. 
-        Learn from the samples below, how to respond and organize the repospond:
+        Learn from the samples below, how to respond and organize the response:
 
         In case LQ scores are presents, a sample response can be of the form, assuming context is service or good
         From the technology perspective the summary is as follows:
-        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
-        - The region (Burgenland) is not specialized in this field.
+        1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus** 
+        - The region (Burgenland) is **not specialized** in this field.
         - In Europe, the top 3 locations specialized in this field are
             - Île de France (France)
-        - The location above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
+        - The loacation above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
 
         2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
         - The region is **specialized** in this field.
@@ -635,9 +632,9 @@ def summarize_documents() -> tuple[str, bytes]:
         3. **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
         - The region is **not specialized** in this field. 
         - In Europe, the top 3 locations specialized in this field are:
-            - Stuttgart (Germany)
-            - Emilia-Romagna (Italy)
-            - Düsseldorf (Germany)
+            - Stuttgart (Germany), 
+            - Emilia-Romagna (Italy), 
+            - Düsseldorf (Germany). 
         - The closest top 3 specialized locations to Burgenland (Austria) are:
             - Veneto (Italy) with a distance of 415.52 km, 
             - Stuttgart (Germany) with a distance of 537.03 km,
@@ -646,12 +643,13 @@ def summarize_documents() -> tuple[str, bytes]:
         In case LQ scores are missing, a sample response can be of the form, assuming context is service or good:
         From the technology perspective the summary is as follows:
         1. **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
-        - This category is based on documents that are higly ranked in the retrieved documents, however whether the region is specialized in this category cannot be determined.
+        - It cannot be determined whether the region is specialized in this category.
         - In Europe, the top 3 locations specialized in this field are
             - Île de France (France)
         - The loaction above is also the closest in this filed with a distance of 105
+
         2. **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
-        - This category is based on documents that are higly ranked in the retrieved documents, however whether the region is specialized in this category cannot be determined.
+        - It cannot be determined whether the region is specialized in this category.
         - In Europe, the top 3 locations specialized in this field are:
             - Stuttgart (Germany)
             - Emilia-Romagna (Italy)
@@ -662,12 +660,13 @@ def summarize_documents() -> tuple[str, bytes]:
             - Emilia-Romagna (Italy) with a distance of 540.74 km.
 
 
-        Here are the documents needed for the summarty:
+        Here are the documents needed for the summary:
         Context: {context}
         Collection of documents: {text}
         General specialized documents: {general_specialized_documents}
         Local specialized documents: {local_specialized_documents}
         '''
+        
 
     # Generate the summary
     response = client.chat.completions.create(
