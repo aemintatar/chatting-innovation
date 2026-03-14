@@ -1,6 +1,8 @@
 import io
 import os
-import tempfile
+import json
+import pickle
+import base64
 import requests
 import numpy as np
 import pandas as pd
@@ -11,9 +13,6 @@ from openai import OpenAI
 from scipy.stats import rankdata
 from sentence_transformers import SentenceTransformer
 
-from io import BytesIO
-import requests
-import pickle
 
 # Auxiliary Tools
 client = OpenAI(base_url=BASEURL, api_key=APIKEY)

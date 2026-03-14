@@ -240,72 +240,15 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
 st.divider()
 
 # =========================
-# RATING
+# 🔹 STEP 5: RATING
 # =========================
+
 st.write("#### Feedback")
-st.write("Your feedback helps us improve the app! Please take a moment to share your thoughts. We are not collecting any personally identifiable information, and all feedback is anonymous.")
-if st.button("Give feedback"):
-    st.session_state["show_feedback"] = True
-    st.markdown("#### Rate this App")
-
-    expectation = st.radio(
-        "Did this output meet your expectations?",
-        options=["Yes", "Partially", "No"],
-        index=None
-    )
-
-    useful = st.radio(
-        "Was this result useful for your task?",
-        options=["Yes", "Partially", "No"],
-        index=None
-    )
-
-    practical = st.radio(
-        "Was this app confusing to use?",
-        options=["Yes", "Partially", "No"],
-        index=None
-    )
-
-    apprating = st.radio(
-        "Overall rating",
-        options=[1, 2, 3, 4, 5],
-        format_func=lambda x: "⭐" * x,
-        horizontal=True
-    )
-
-    comments = st.text_area(
-        "Additional comments (optional)",
-        placeholder="Tell us how this could be improved..."
-    )
-
-
-
-    if st.button("Submit feedback"):
-        
-        feedback = {
-            "timestamp": datetime.now(),
-            "apprating": apprating,
-            "met_expectations": expectation,
-            "useful_for_task": useful,
-            "comments": comments,
-            "practical_to_use": practical
-        }
-
-        feedback_df = pd.DataFrame([feedback])
-        st.session_state["feedback_file_exists"] = True
-
-        if "feedback_file_exists" in st.session_state and st.session_state["feedback_file_exists"]:
-            with open("feedback_log.csv", "rb") as f:
-                st.download_button(
-                    label="📥 Download feedback CSV",
-                    data=f,
-                    file_name="feedback_log.csv",
-                    mime="text/csv"
-                )
-
-        
-
-        st.success("✅ Thank you for your feedback!")
+st.write("Your feedback helps us improve the app! Please take a moment to share your thoughts. You will be taken to a Google Form where you can provide your feedback. Thank you!")
+st.link_button(
+    "Open feedback form",
+    "https://docs.google.com/forms/d/e/1FAIpQLSdHgnvtR5buH767a_QgIt9ezYriQLWS9Ow2J-lJEdS6F-SO0Q/viewform?usp=sharing&ouid=109488069869282464948"
+)
 
 st.markdown("#### Restart Application")
 # =========================
