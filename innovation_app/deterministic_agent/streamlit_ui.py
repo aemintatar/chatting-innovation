@@ -1,9 +1,13 @@
 import os
 import gdown
 import streamlit as st
+import geopandas as gpd
+import pydeck as pdk
 from settings import *
 from datetime import datetime
 from innovation_tools import *
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 from huggingface_hub import hf_hub_download
 
 
@@ -64,7 +68,14 @@ def load_all_data_from_drive():
         "META_MARKET_LQ_INDEX_PATH": "market_lq_metadata.pkl",
         "META_TECH_LQ_INDEX_PATH": "tech_lq_metadata.pkl",
         "META_DISTANCE_INDEX_PATH": "distance.pkl",
-        "META_NUTS2_INDEX_PATH": "nuts2.pkl"
+        "META_NUTS2_INDEX_PATH": "nuts2.pkl",
+        "SHAPEFILE_NUTS2_PATH": "NUTS_RG_03M_2013.shp",
+        "SHAPEFILE_AUX1_PATH": "NUTS_RG_03M_2013.sbn",
+        "SHAPEFILE_AUX2_PATH": "NUTS_RG_03M_2013.sbx",
+        "SHAPEFILE_AUX3_PATH": "NUTS_RG_03M_2013.shp.xml",
+        "SHAPEFILE_AUX4_PATH": "NUTS_RG_03M_2013.shx",
+        "SHAPEFILE_AUX5_PATH": "NUTS_RG_03M_2013.dbf",
+        "SHAPEFILE_AUX6_PATH": "NUTS_RG_03M_2013.prj"
     }
 
     def local_file(filename):
@@ -77,7 +88,8 @@ def load_all_data_from_drive():
         )
 
     st.write("⚙️ Reading data files into memory...")
-
+    print(local_file(HF_FILES["SHAPEFILE_NUTS2_PATH"]))
+    print(local_file(HF_FILES["META_ALL_INDEX_PATH"]))
     all_meta = load_meta(local_file(HF_FILES["META_ALL_INDEX_PATH"]))
     tech_index = load_index(local_file(HF_FILES["FAISS_TECH_INDEX_PATH"]))
     tech_meta = load_meta(local_file(HF_FILES["META_TECH_INDEX_PATH"]))
@@ -89,6 +101,13 @@ def load_all_data_from_drive():
     tech_lq_meta = load_meta(local_file(HF_FILES["META_TECH_LQ_INDEX_PATH"]))
     distance_index = load_meta(local_file(HF_FILES["META_DISTANCE_INDEX_PATH"]))
     nuts2_meta = load_meta(local_file(HF_FILES["META_NUTS2_INDEX_PATH"]))
+    shapefile_aux1 = local_file(HF_FILES["SHAPEFILE_AUX1_PATH"])
+    shapefile_aux2 = local_file(HF_FILES["SHAPEFILE_AUX2_PATH"])
+    shapefile_aux3 = local_file(HF_FILES["SHAPEFILE_AUX3_PATH"])
+    shapefile_aux4 = local_file(HF_FILES["SHAPEFILE_AUX4_PATH"])
+    shapefile_aux5 = local_file(HF_FILES["SHAPEFILE_AUX5_PATH"])
+    shapefile_aux6 = local_file(HF_FILES["SHAPEFILE_AUX6_PATH"])
+    shapefile_nuts2 = gpd.read_file(local_file(HF_FILES["SHAPEFILE_NUTS2_PATH"]))
 
     return {
         "META_ALL_INDEX_KEY": all_meta,
@@ -102,6 +121,7 @@ def load_all_data_from_drive():
         "META_TECH_LQ_INDEX_KEY": tech_lq_meta,
         "META_DISTANCE_INDEX_KEY": distance_index,
         "META_NUTS2_INDEX_KEY": nuts2_meta,
+        "SHAPEFILE_NUTS2_KEY": shapefile_nuts2
     }
 
 
@@ -223,21 +243,89 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
             summary = summarize_documents()
             st.session_state["summary"] = summary
         st.success("✅ Summaries generated successfully!")
+        print(summary)
+
 
     if 'summary' in st.session_state:
-        st.write("#### Summary")
-        st.write(st.session_state.get('summary'))
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        summary_file = summary_download()
-        st.session_state["summary_file"] = summary_file
-        st.download_button(
-            label="⬇️ Download Summary",
-            data=st.session_state.get("summary_file"),
-            file_name=f"summary_report_{timestamp}.txt",
-            mime="text/plain",
-        )    
+        col1, col2 = st.columns([1.2,1])
+        with col1:
+            st.write("#### Summary")
+            st.write(st.session_state.get('summary'))
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            summary_file = summary_download()
+            st.session_state["summary_file"] = summary_file
+            st.download_button(
+                label="⬇️ Download Summary",
+                data=st.session_state.get("summary_file"),
+                file_name=f"summary_report_{timestamp}.txt",
+                mime="text/plain",
+            )    
+        with col2:
+            nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
+            nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
 
-st.divider()
+            source_nuts_label = st.session_state.get("selected_region")
+            for entry in nuts2_meta:
+                if entry['NUTS label'] == source_nuts_label:
+                    source_id = entry['NUTS Code']
+            
+            relevant_ids = st.session_state.get("top_regions", [])
+            closest_ids = st.session_state.get("closest_regions", [])
+
+            nuts_gdf = st.session_state.get("SHAPEFILE_NUTS2_KEY")
+
+            nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
+            nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
+
+            def categorize(nuts_id):
+                if nuts_id == source_id:
+                    return 'Source'
+                elif nuts_id in relevant_ids:
+                    return 'Relevant'
+                elif nuts_id in closest_ids:
+                    return 'Closest'
+                else:
+                    return 'Other'
+
+            nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
+
+            # Define the color mapping
+            color_map = {
+                'Source': 'red',
+                'Relevant': 'blue',
+                'Closest': 'green',
+                'Other': '#eeeeee' # Light grey for context
+            }
+
+            # Plot
+            fig, ax = plt.subplots(figsize=(10, 10))
+
+            # Plot all regions with the mapping
+            nuts2_gdf.plot(
+                ax=ax, 
+                categorical=True,
+                legend=True,
+                color=nuts2_gdf['category'].map(color_map), 
+                edgecolor='black', 
+                linewidth=0.5,
+            )
+
+            legend_elements = [
+                Patch(facecolor=color_map['Source'], edgecolor='black', label='Selected Region'),
+                Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top Specialized Regions'),
+                Patch(facecolor=color_map['Closest'], edgecolor='black', label='Closest Regions'),
+                Patch(facecolor=color_map['Other'], edgecolor='black', label='Other Regions')
+            ]
+
+
+            ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
+
+            st.pyplot(fig)
+
+            
+
+
+
 
 # =========================
 # 🔹 STEP 5: RATING
@@ -252,7 +340,7 @@ st.link_button(
 
 st.markdown("#### Restart Application")
 # =========================
-# RESTART
+# 🔹 STEP 6: RESTART
 # =========================
 st.divider()
 if st.button("Restart App"):

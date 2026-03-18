@@ -1,11 +1,12 @@
 import io
-import os
+import re
 import json
 import pickle
 import base64
 import requests
 import numpy as np
 import pandas as pd
+import zipfile
 from io import BytesIO
 import streamlit as st
 from settings import *
@@ -591,6 +592,15 @@ def summarize_documents() -> tuple[str, bytes]:
             local_specialized_documents = None
     
     text = text_df.to_dict(orient='records')
+    #stored for mapping in the summary
+    closest_regions = []
+    top_regions = []
+    for loc in local_specialized_documents:
+        closest_regions.append(loc['nuts2_2'])
+    for loc in general_specialized_documents:
+        top_regions.append(loc['nuts2_code'])
+    st.session_state['closest_regions'] = closest_regions
+    st.session_state['top_regions'] = top_regions
 
     user_message = f'''Summarize the following content which represents the most 
         relevant documents to users query and auxiliary documents related to the top locations and closest top locations when location information is present. 
@@ -720,5 +730,4 @@ def selected_codes(selected_codes:list) -> dict:
     return {"status":"success",
            "message":("Here are the selected documents: \n"
                       + f"{selected_results}")}
-
 
