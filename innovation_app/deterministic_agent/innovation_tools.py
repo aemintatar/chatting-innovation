@@ -668,7 +668,20 @@ def summarize_documents() -> tuple[str, bytes]:
             - Stuttgart (Germany) with a distance of 537.03 km,     
             - Emilia-Romagna (Italy) with a distance of 540.74 km.
 
+        Return your response in TWO parts:
 
+        1. A human-readable summary as in the samples above
+
+        2. A JSON object with the following structure:
+            title:
+            is_specialized: true/false,
+            top_regions: [top_region1, top_region2, top_region3],
+            closest_regions: [closestregion1, closest_region2, closest_region3]
+        
+
+
+        Return ONLY valid JSON for part 2. Do not include explanations inside the JSON.
+        Split the two responses with a clear separator using "### JSON ###" in between.
         Here are the documents needed for the summary:
         Context: {context}
         Collection of documents: {text}
