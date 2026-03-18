@@ -319,6 +319,7 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                         source_id = entry['NUTS Code']
 
                 nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
+                print(nuts_gdf.head())
                 
 
                 nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
