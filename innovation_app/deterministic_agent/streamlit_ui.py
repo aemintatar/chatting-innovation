@@ -269,7 +269,8 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
         col1, col2 = st.columns([1.2,1])
         with col1:
             st.write("#### Summary")
-            st.write(st.session_state.get('summary_text'))
+            #st.write(st.session_state.get('summary_text'))
+            st.write(summary)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             summary_file = summary_download()
             st.session_state["summary_file"] = summary_file
