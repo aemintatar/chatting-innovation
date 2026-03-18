@@ -257,6 +257,7 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
     if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
             summary = summarize_documents()
+            print(summary)
             summary_text = summary.split('### JSON ###')[0].strip()
             summary_json = summary.split('### JSON ###')[1].strip() if '### JSON ###' in summary else None
             st.session_state["summary_text"] = summary_text
@@ -269,8 +270,7 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
         col1, col2 = st.columns([1.2,1])
         with col1:
             st.write("#### Summary")
-            #st.write(st.session_state.get('summary_text'))
-            st.write(summary)
+            st.write(st.session_state.get('summary_text'))
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             summary_file = summary_download()
             st.session_state["summary_file"] = summary_file
