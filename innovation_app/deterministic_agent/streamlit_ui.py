@@ -235,8 +235,8 @@ if st.session_state.get('selected_codes'):
         st.session_state['scored_docs'] = scored_docs
     if 'scored_docs' in st.session_state:
         st.write("#### Top Matches")
-        st.write('Based on the PAT2TM concordance, we show the closest matches first. The further down you go, the less related they are to your question.')
-        st.write('Up to five documents can be selected')
+        st.write(f'Based on the PAT2TM concordance, the top matches are shown for {st.session_state.get("selected_region")}, {st.session_state.get("country_code")}, with relevance decreasing further down.')
+        st.write('You can select up to five documents for summarization.')
         st.session_state['quantile_cutoff'] = 0.75
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
@@ -257,7 +257,6 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
     if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
             summary = summarize_documents()
-            print(summary)
             summary_text = summary.split('### JSON ###')[0].strip()
             summary_json = summary.split('### JSON ###')[1].strip() if '### JSON ###' in summary else None
             st.session_state["summary_text"] = summary_text
@@ -319,9 +318,7 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                         source_id = entry['NUTS Code']
 
                 nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
-                print(nuts_gdf.head())
                 
-
                 nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
                 nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
                 
@@ -421,6 +418,7 @@ st.markdown("#### Restart Application")
 st.divider()
 if st.button("Restart App"):
     # Clear all Streamlit session state variables
+    print('Listing session state keys before clearing:', list(st.session_state.keys()))
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.success("App has been restarted. Resetting all inputs...")

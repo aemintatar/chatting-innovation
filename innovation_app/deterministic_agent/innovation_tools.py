@@ -422,15 +422,15 @@ def scoring_documents() -> dict:
 
     if context == 'technology':
         if selected_region:
-            results = selected_meta_df[['nuts2','country_en','Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
-            results = results.rename(columns={'nuts2':'region','country_en':'country','Nice_subclass_label_cleaned':'Nice_subclass_label'})
+            results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
+            results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
         else:
             results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij','Quantiles']]
             results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
     if context in ['good','service']:
         if selected_region:
-            results = selected_meta_df[['nuts2','country_en','CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
-            results = results.rename(columns={'nuts2':'region','country_en':'country','CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
+            results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
+            results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
         else:
             results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
@@ -461,7 +461,6 @@ def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
     return filtered_df
 
 def display_filtered_documents(filtered_docs):
-    #filtered_docs = st.session_state.get('filtered_docs', pd.DataFrame())
 
     if filtered_docs.empty:
         st.info("No documents to display.")
@@ -477,19 +476,19 @@ def display_filtered_documents(filtered_docs):
         edited_df = st.data_editor(
             df,
             hide_index=True,
-            width='stretch',
+            width=1600,
             key="document_selector",
             column_config= { #this is not working
                 "Select":st.column_config.CheckboxColumn(width=10),
-                "region":st.column_config.TextColumn(label="Region (NUTS2)",width=20),
-                'country':st.column_config.TextColumn(label="Country",width=20),
+                #"region":st.column_config.TextColumn(label="Region (NUTS2)",width=20),
+                #'country':st.column_config.TextColumn(label="Country",width=20),
                 'Nice_subclass':st.column_config.TextColumn(label="Product code",width=20),
-                'Nice_subclass_keyword':st.column_config.TextColumn(label="Product description (keywords)",width=200),
-                'Nice_subclass_label':st.column_config.TextColumn(label="Product description",width=300),
+                'Nice_subclass_keyword':st.column_config.TextColumn(label="Product description (keywords)",width=300),
+                'Nice_subclass_label':st.column_config.TextColumn(label="Product description",width=600),
                 'CPC_4digit':st.column_config.TextColumn(label="Technology code",width=20),
-                'CPC_4digit_label':st.column_config.TextColumn(label="Technology description",width=300),
+                'CPC_4digit_label':st.column_config.TextColumn(label="Technology description",width=1200),
             },
-            column_order=["Select","region","country","Nice_subclass","Nice_subclass_keyword","Nice_subclass_label","CPC_4digit","CPC_4digit_label"]
+            column_order=["Select","Nice_subclass","Nice_subclass_keyword","Nice_subclass_label","CPC_4digit","CPC_4digit_label"]
         )
 
         selected_docs = edited_df[edited_df["Select"]]
@@ -502,6 +501,7 @@ def display_filtered_documents(filtered_docs):
             else:
                 selected_docs = edited_df[edited_df["Select"]]
                 st.session_state["selected_docs"] = selected_docs
+                st.success(f"{len(selected_docs)} documents have been selected. Continue with summarization!")
 
 
 def specialized_regions():
