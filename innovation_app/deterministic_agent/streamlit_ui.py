@@ -188,7 +188,7 @@ if st.button("Apply Parameters"):
     st.session_state["selected_region"] = None if region_value.startswith("--") else region_value
     st.success("Parameters applied!")
 
-if 'detected_context' in st.session_state:
+if 'detected_context' in st.session_state and st.session_state.get('country_code') and st.session_state.get('selected_region'):
     st.write('#### Specializations')
     df = get_top_lq()
     st.session_state['specialization'] = df
@@ -242,8 +242,8 @@ if st.session_state.get('selected_codes'):
         # ---- Add checkbox selection ----
         display_filtered_documents(filtered_scored_docs)
         
-        if 'low_lq' in st.session_state and 'selected_docs' in st.session_state:
-            specialized_regions()
+        #if 'weak_docs' in st.session_state and 'selected_docs' in st.session_state:
+        #    specialized_regions()
 
 # =========================
 # 🔹 STEP 4: Summarize & Download
@@ -256,19 +256,15 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
 
     if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
-            summary = summarize_documents()
-            summary_text = summary.split('### JSON ###')[0].strip()
-            summary_json = summary.split('### JSON ###')[1].strip() if '### JSON ###' in summary else None
-            st.session_state["summary_text"] = summary_text
-            summary_json = json.loads(summary_json[4:])
-            st.session_state["summary_json"] = summary_json
+            specialized_regions()
+            summarize_documents()
         st.success("✅ Summaries generated successfully!")
 
 
     if 'summary_text' in st.session_state:
         col1, col2 = st.columns([1.2,1])
         with col1:
-            st.write("#### Summary")
+            st.write("#### Summary Report")
             st.write(st.session_state.get('summary_text'))
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             summary_file = summary_download()
@@ -280,9 +276,9 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                 mime="text/plain",
             )    
         with col2:
-            summary_json = st.session_state.get("summary_json",[])
+            summary_json = st.session_state.get("summary",[])
             if summary_json:
-                titles = [item["title"] for item in summary_json]
+                titles = [content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()] #to remove the markdown formatting from the title
 
                 selected_title = st.selectbox(
                     "Select a topic for the map:",
@@ -297,17 +293,10 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                             key="region_view_mode"
                         )
 
-                selected_doc = next(item for item in summary_json if item["title"] == selected_title)
+                selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
 
-                top_regions = selected_doc["top_regions"]
-                closest_regions = selected_doc["closest_regions"]
-                relevant_ids = []
-                closest_ids = []
-                for entry in nuts2_meta:
-                    if entry['NUTS label'] in top_regions:
-                        relevant_ids.append(entry['NUTS Code'])
-                    if entry['NUTS label'] in closest_regions:
-                        closest_ids.append(entry['NUTS Code'])
+                relevant_ids = selected_doc["global_code"]
+                closest_ids = selected_doc["local_code"]
 
                 nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
                 nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
@@ -418,7 +407,6 @@ st.markdown("#### Restart Application")
 st.divider()
 if st.button("Restart App"):
     # Clear all Streamlit session state variables
-    print('Listing session state keys before clearing:', list(st.session_state.keys()))
     for key in list(st.session_state.keys()):
         del st.session_state[key]
     st.success("App has been restarted. Resetting all inputs...")
