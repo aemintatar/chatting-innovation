@@ -87,6 +87,7 @@ def load_country_regions(metadata):
     """Load country-region mappings dynamically."""
     country_regions = {}
     country_names = []
+    country_codes = []
     for region in metadata:
         country = region.get("Country code")
         country_name = region.get("Country name")
@@ -94,6 +95,8 @@ def load_country_regions(metadata):
         if country and country_name and label:
             country_regions.setdefault(country, []).append(label)
             country_names.append(f"{country_name} ({country})")
+            country_codes.append(country)
+    st.session_state['country_codes'] = sorted(list(set(country_codes)))
     return country_regions,sorted(list(set(country_names)))
 
 def get_top_lq():
@@ -392,27 +395,43 @@ def scoring_documents() -> dict:
         selected_meta_df = lq_results.merge(right=selected_meta_df,how='right',left_on=lq_code_variable,right_on=code_variable_other)
     else:
         if context == 'technology':
+            lq_metadata = st.session_state.get("META_MARKET_LQ_INDEX_KEY")
+            lq_variable = 'market_lq'
+            lq_code_variable = 'Nice_subclass'
             code_variable = 'CPC_4digit'
+            code_variable_other = 'Nice_subclass'
             for meta in metadata:
                 if meta[code_variable] in selected_codes:
                     selected_meta.append(meta)
         
         if context == 'service':
+            lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+            lq_variable = 'tech_lq'
+            lq_code_variable = 'cpc'
             code_variable = 'Nice_subclass'
+            code_variable_other = 'CPC_4digit'
             for meta in metadata:
                 if meta[code_variable] in selected_codes:
                     selected_meta.append(meta)
 
         if context == 'good':
+            lq_metadata = st.session_state.get("META_TECH_LQ_INDEX_KEY")
+            lq_variable = 'tech_lq'
+            lq_code_variable = 'cpc'
             code_variable = 'Nice_subclass'
+            code_variable_other = 'CPC_4digit'
             for meta in metadata:
                 if meta[code_variable] in selected_codes:
                     selected_meta.append(meta)
                 
-        #for meta in selected_meta: # this is needed because of | in the data
-        #    meta['Nice_subclass_keyword'] = meta['Nice_subclass_keyword'].replace('|',',')
-
+        #clean metadata from countries and regions, as they are not relevant for the scoring and create noise in the merging
+        country_codes = st.session_state.get('country_codes')
+        lq_results = [meta for meta in lq_metadata if meta.get('country_code') in country_codes]
+        lq_results = pd.DataFrame(lq_results)
+        
         selected_meta_df = pd.DataFrame(selected_meta)
+        selected_meta_df = lq_results.merge(right=selected_meta_df,how='right',left_on=lq_code_variable,right_on=code_variable_other)
+        selected_meta_df = selected_meta_df.drop_duplicates()
 
     scores = selected_meta_df['Zij']
     positive_mask = scores > 0
@@ -427,16 +446,19 @@ def scoring_documents() -> dict:
             results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
         else:
-            results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij','Quantiles']]
+            results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
+            #drop the duplicate codes
+            results = results.drop_duplicates(subset=['Nice_subclass'], keep='first')
     if context in ['good','service']:
         if selected_region:
             results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
         else:
-            results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij','Quantiles']]
-            results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
-
+            results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
+            results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'})
+            #drop the duplicate codes
+            results = results.drop_duplicates(subset=['CPC_4digit'], keep='first')
     return results
 
 def filter_by_quantile_session(results_df: pd.DataFrame) -> pd.DataFrame:
@@ -504,6 +526,51 @@ def display_filtered_documents(filtered_docs):
                 st.session_state["selected_docs"] = selected_docs
                 st.success(f"{len(selected_docs)} documents have been selected. Continue with summarization!")
 
+def generalized_regions(): #need to be completed
+    """
+    In case region is not specialized in any technology, we recommend the globally strongest regions in the relevant technologies.
+    """
+    context = st.session_state.get("detected_context", "Not specified")
+    region_list = pd.DataFrame(st.session_state.get("META_NUTS2_INDEX_KEY"))
+    
+    if context == 'technology':
+        lq_variable = 'market_lq'
+        lq_code_variable = 'Nice_subclass'
+        code_variable = 'Nice_subclass'
+        lq_metadata = pd.DataFrame(st.session_state.get("META_MARKET_LQ_INDEX_KEY"))
+    else:
+        lq_variable = 'tech_lq'
+        lq_code_variable = 'cpc'
+        code_variable = 'CPC_4digit'
+        lq_metadata = pd.DataFrame(st.session_state.get("META_TECH_LQ_INDEX_KEY"))
+    
+    filtered_df = st.session_state.get("selected_docs",pd.DataFrame())
+
+    filtered_codes = filtered_df[code_variable].tolist()
+
+    weak_docs = filtered_df[filtered_df[lq_variable] < 0.7]
+    weak_codes = weak_docs[code_variable].tolist()
+
+    target_codes = list(set(weak_codes + filtered_codes))
+   
+    #highest LQ and highest LQ with shortest distance
+    candidate_regions = lq_metadata[lq_metadata[lq_code_variable].isin(target_codes)]
+    
+     # ---- Keep only specialized regions ----
+    specialized_regions = candidate_regions[candidate_regions[lq_variable] >= 0.7]
+
+    
+    global_specialized = specialized_regions.groupby(lq_code_variable, group_keys=False).apply(lambda g: g.nlargest(3, lq_variable))
+    
+     # Keep only technologies appearing in filtered documents
+    global_specialized = global_specialized[
+        global_specialized[lq_code_variable].isin(filtered_df[code_variable])
+    ]
+
+     # ---- Save results ----
+    st.session_state["general_specialized"] = global_specialized
+    st.session_state["local_specialized"] = None
+    return global_specialized, None
 
 def specialized_regions():  #per_document_version
     """
@@ -535,15 +602,14 @@ def specialized_regions():  #per_document_version
         lq_metadata = pd.DataFrame(st.session_state.get("META_TECH_LQ_INDEX_KEY"))
     
     filtered_df = st.session_state.get("selected_docs",pd.DataFrame())
+
     filtered_codes = filtered_df[code_variable].tolist()
-    print(f'Filtered documents:\n{filtered_codes}')
+
 
     weak_docs = filtered_df[filtered_df[lq_variable] < 0.7]
     weak_codes = weak_docs[code_variable].tolist()
-    print(f'Weak codes:\n{weak_codes}')
 
     target_codes = list(set(weak_codes + filtered_codes))
-    print(f'Target codes for specialization search:\n{target_codes}')
    
     #highest LQ and highest LQ with shortest distance
     candidate_regions = lq_metadata[lq_metadata[lq_code_variable].isin(target_codes)]
@@ -614,16 +680,10 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
     selected_df = st.session_state.get("selected_docs")
     general_specialized_df = st.session_state.get("general_specialized")
     local_specialized_df = st.session_state.get("local_specialized")
-    general_specialized_documents = general_specialized_df.to_dict(orient='records')
-    local_specialized_documents = local_specialized_df.to_dict(orient='records')
+    #general_specialized_documents = general_specialized_df.to_dict(orient='records')
+    #local_specialized_documents = local_specialized_df.to_dict(orient='records')
 
     summary = {}
-    print('Selected documents for summarization:')
-    print(selected_df.head())
-    print('General specialized regions:')
-    print(general_specialized_df.head())
-    print('Local specialized regions:')
-    print(local_specialized_df.head())
     #Complete this for loop.
     for i,r in selected_df.iterrows():
         temp = {}
@@ -639,7 +699,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
                 local_specialized_documents = local_specialized_df[local_specialized_df[code_variable] == code].to_dict(orient='records') 
             else:
                 text_df = r[['Nice_subclass_keyword','Nice_subclass_label','Quantiles']]
-                general_specialized_documents = None
+                general_specialized_documents = general_specialized_df[general_specialized_df[lq_code_variable] == code].to_dict(orient='records')
                 local_specialized_documents = None
         if context.lower() in ['good','service']:
             lq_variable = 'tech_lq'
@@ -652,7 +712,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
                 local_specialized_documents = local_specialized_df[local_specialized_df[code_variable] == code].to_dict(orient='records')   
             else:
                 text_df = r[['CPC_4digit_label','Quantiles']]
-                general_specialized_documents = None
+                general_specialized_documents = general_specialized_df[general_specialized_df[lq_code_variable] == code].to_dict(orient='records')
                 local_specialized_documents = None
 
 
@@ -706,34 +766,24 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
                 - Stuttgart (Germany) with a distance of 537.03 km,
                 - Emilia-Romagna (Italy) with a distance of 540.74 km.
             
-            In case LQ scores are missing, a sample response can be of the form, assuming context is service or good:
+           
+            In case there is no region selected, it does not make sense to report whether the region is specialized in this field. A sample response can be of the form:
             
-            **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus**
-            - It cannot be determined whether the region is specialized in this category.
-            - In Europe, the top 3 locations specialized in this field are
-                - Île de France (France)
-            - The loaction above is also the closest in this filed with a distance of 105
-
-            **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
-            - It cannot be determined whether the region is specialized in this category.
+            **Electric Household Appliances: Cooking, Heating, Drying, Food Preparation**
             - In Europe, the top 3 locations specialized in this field are:
-                - Stuttgart (Germany)
-                - Emilia-Romagna (Italy)
-                - Düsseldorf (Germany)
-            - The closest top 3 specialized locations to Burgenland (Austria) are:
-                - Veneto (Italy) with a distance of 415.52 km, 
-                - Stuttgart (Germany) with a distance of 537.03 km,     
-                - Emilia-Romagna (Italy) with a distance of 540.74 km.
-
+                - Nordwestschweiz (Switzerland)
+                - Alsace (France)
+                - Valle d'Aosta/Vallée d'Aoste (Italy)
+            
             Return your response in TWO parts:
 
             1. A human-readable summary as in the samples above
 
             2. A JSON object with the following structure:
                 title:
-                is_specialized: true/false,
+                is_specialized: true/false, if region information isavailable
                 top_regions: [top_region1, top_region2, top_region3],
-                closest_regions: [closestregion1, closest_region2, closest_region3]
+                closest_regions: [closestregion1, closest_region2, closest_region3] if specialized information is available,
             
 
 
@@ -759,7 +809,8 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
 
         clean_response = response.choices[0].message.content.replace('```', '').strip()
         temp['text'] = clean_response.split("### JSON ###")[0].strip()
-        temp['local_code'] = [doc['nuts2_2'] for doc in local_specialized_documents]
+        if local_specialized_documents is not None:
+            temp['local_code'] = [doc['nuts2_2'] for doc in local_specialized_documents]
         temp['global_code'] = [doc['nuts2_code'] for doc in general_specialized_documents]
         summary.update({code: temp})
     st.session_state['summary'] = summary

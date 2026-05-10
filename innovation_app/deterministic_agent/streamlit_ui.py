@@ -235,8 +235,12 @@ if st.session_state.get('selected_codes'):
         st.session_state['scored_docs'] = scored_docs
     if 'scored_docs' in st.session_state:
         st.write("#### Top Matches")
-        st.write(f'Based on the PAT2TM concordance, the top matches are shown for {st.session_state.get("selected_region")}, {st.session_state.get("country_code")}, with relevance decreasing further down.')
-        st.write('You can select up to five documents for summarization.')
+        if st.session_state.get('selected_region'):
+            st.write(f'Based on the PAT2TM concordance, the top matches are shown for {st.session_state.get("selected_region")}, {st.session_state.get("country_code")}, with relevance decreasing further down.')
+            st.write('You can select up to five documents for summarization.')
+        else:
+            st.write(f'Based on the PAT2TM concordance, the top matches are shown, with relevance decreasing further down.')
+            st.write('You can select up to five documents for summarization.')
         st.session_state['quantile_cutoff'] = 0.75
         filtered_scored_docs = filter_by_quantile_session(st.session_state.get('scored_docs'))
         # ---- Add checkbox selection ----
@@ -256,7 +260,10 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
 
     if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
-            specialized_regions()
+            if st.session_state.get("selected_region"):
+                specialized_regions()
+            else:
+                generalized_regions()
             summarize_documents()
         st.success("✅ Summaries generated successfully!")
 
@@ -277,115 +284,194 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
             )    
         with col2:
             summary_json = st.session_state.get("summary",[])
+            
             if summary_json:
-                titles = [content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()] #to remove the markdown formatting from the title
+                region = st.session_state.get("selected_region")
+                if region:
+                    titles = [content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()] #to remove the markdown formatting from the title
 
-                selected_title = st.selectbox(
-                    "Select a topic for the map:",
-                    titles,
-                    key="map_topic_selector"
-                )
+                    selected_title = st.selectbox(
+                        "Select a topic for the map:",
+                        titles,
+                        key="map_topic_selector"
+                    )
 
-                view_mode = st.radio(
-                            "Show regions:",
-                            ["Top regions", "Closest regions"],
-                            horizontal=True,
-                            key="region_view_mode"
-                        )
+                    view_mode = st.radio(
+                                "Show regions:",
+                                ["Top regions", "Closest regions"],
+                                horizontal=True,
+                                key="region_view_mode"
+                            )
 
-                selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
+                    selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
 
-                relevant_ids = selected_doc["global_code"]
-                closest_ids = selected_doc["local_code"]
+                    relevant_ids = selected_doc["global_code"]
+                    closest_ids = selected_doc["local_code"]
 
-                nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
-                nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
+                    nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
+                    nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
 
-                source_nuts_label = st.session_state.get("selected_region")
-                for entry in nuts2_meta:
-                    if entry['NUTS label'] == source_nuts_label:
-                        source_id = entry['NUTS Code']
+                    source_nuts_label = st.session_state.get("selected_region")
+                    for entry in nuts2_meta:
+                        if entry['NUTS label'] == source_nuts_label:
+                            source_id = entry['NUTS Code']
 
-                nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
-                
-                nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
-                nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
-                
-                nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
-                nuts_lb = nuts_lb[nuts_lb["STAT_LEVL_"] == 2]
-                if view_mode == "Top regions":
-                    pin_ids = relevant_ids
-                else:
-                    pin_ids = closest_ids
+                    nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
+                    
+                    nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
+                    nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
+                    
+                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
+                    nuts_lb = nuts_lb[nuts_lb["STAT_LEVL_"] == 2]
+                    if view_mode == "Top regions":
+                        pin_ids = relevant_ids
+                    else:
+                        pin_ids = closest_ids
 
-                pin_ids = pin_ids + [source_id]  # always include source
+                    pin_ids = pin_ids + [source_id]  # always include source
 
-                pins_gdf = nuts_lb[nuts_lb["NUTS_ID"].isin(pin_ids)].copy()
+                    pins_gdf = nuts_lb[nuts_lb["NUTS_ID"].isin(pin_ids)].copy()
 
-                # Extract coordinates directly (no centroid needed!)
-                pins_gdf["lon"] = pins_gdf.geometry.x
-                pins_gdf["lat"] = pins_gdf.geometry.y
+                    # Extract coordinates directly (no centroid needed!)
+                    pins_gdf["lon"] = pins_gdf.geometry.x
+                    pins_gdf["lat"] = pins_gdf.geometry.y
 
-                def categorize(nuts_id):
-                    if nuts_id == source_id:
-                        return 'Source'
+                    def categorize(nuts_id):
+                        if nuts_id == source_id:
+                            return 'Source'
+
+                        if view_mode == "Top regions":
+                            if nuts_id in relevant_ids:
+                                return 'Relevant'
+                            else:
+                                return 'Other'
+
+                        elif view_mode == "Closest regions":
+                            if nuts_id in closest_ids:
+                                return 'Closest'
+                            else:
+                                return 'Other'
+
+                    nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
+
+                    # Define the color mapping
+                    color_map = {
+                        'Source': 'red',
+                        'Relevant': 'blue',
+                        'Closest': 'green',
+                        'Other': '#eeeeee' # Light grey for context
+                    }
+
+                    # Plot
+                    fig, ax = plt.subplots(figsize=(10, 10))
+
+                    # Plot all regions with the mapping
+                    nuts2_gdf.plot(
+                        ax=ax, 
+                        categorical=True,
+                        legend=True,
+                        color=nuts2_gdf['category'].map(color_map), 
+                        edgecolor='black', 
+                        linewidth=0.5,
+                    )
+                    
+
+                    legend_elements = [Patch(facecolor=color_map['Source'], edgecolor='black', label='Selected')]
 
                     if view_mode == "Top regions":
+                        legend_elements.append(Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top'))
+                    else:
+                        legend_elements.append(Patch(facecolor=color_map['Closest'], edgecolor='black', label='Closest'))
+
+                    ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
+
+
+                    pins_gdf.plot(
+                        ax=ax,
+                        marker='^',
+                        color='black',
+                        markersize=20,
+                        zorder=5
+                    )
+
+                    st.pyplot(fig)
+                if not region:
+                    titles = [content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()] #to remove the markdown formatting from the title
+
+                    selected_title = st.selectbox(
+                        "Select a topic for the map:",
+                        titles,
+                        key="map_topic_selector"
+                    )
+
+
+                    selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
+
+                    relevant_ids = selected_doc["global_code"]
+
+                    nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
+                    nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
+
+                    nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
+                    
+                    nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
+                    nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
+                    
+                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
+                    nuts_lb = nuts_lb[nuts_lb["STAT_LEVL_"] == 2]
+                    pin_ids = relevant_ids
+
+                    pin_ids = pin_ids #there is no source region in this case, so we don't add any source id to the pins
+
+                    pins_gdf = nuts_lb[nuts_lb["NUTS_ID"].isin(pin_ids)].copy()
+
+                    # Extract coordinates directly (no centroid needed!)
+                    pins_gdf["lon"] = pins_gdf.geometry.x
+                    pins_gdf["lat"] = pins_gdf.geometry.y
+
+                    def categorize(nuts_id):
+
                         if nuts_id in relevant_ids:
                             return 'Relevant'
                         else:
                             return 'Other'
 
-                    elif view_mode == "Closest regions":
-                        if nuts_id in closest_ids:
-                            return 'Closest'
-                        else:
-                            return 'Other'
+                    nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
 
-                nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
+                    # Define the color mapping
+                    color_map = {
+                        'Relevant': 'blue',
+                        'Other': '#eeeeee' # Light grey for context
+                    }
 
-                # Define the color mapping
-                color_map = {
-                    'Source': 'red',
-                    'Relevant': 'blue',
-                    'Closest': 'green',
-                    'Other': '#eeeeee' # Light grey for context
-                }
+                    # Plot
+                    fig, ax = plt.subplots(figsize=(10, 10))
 
-                # Plot
-                fig, ax = plt.subplots(figsize=(10, 10))
+                    # Plot all regions with the mapping
+                    nuts2_gdf.plot(
+                        ax=ax, 
+                        categorical=True,
+                        legend=True,
+                        color=nuts2_gdf['category'].map(color_map), 
+                        edgecolor='black', 
+                        linewidth=0.5,
+                    )
+                    
 
-                # Plot all regions with the mapping
-                nuts2_gdf.plot(
-                    ax=ax, 
-                    categorical=True,
-                    legend=True,
-                    color=nuts2_gdf['category'].map(color_map), 
-                    edgecolor='black', 
-                    linewidth=0.5,
-                )
-                
+                    legend_elements = [Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top')]
 
-                legend_elements = [Patch(facecolor=color_map['Source'], edgecolor='black', label='Selected')]
-
-                if view_mode == "Top regions":
-                    legend_elements.append(Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top'))
-                else:
-                    legend_elements.append(Patch(facecolor=color_map['Closest'], edgecolor='black', label='Closest'))
-
-                ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
+                    ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
 
 
-                pins_gdf.plot(
-                    ax=ax,
-                    marker='^',
-                    color='black',
-                    markersize=20,
-                    zorder=5
-                )
+                    pins_gdf.plot(
+                        ax=ax,
+                        marker='^',
+                        color='black',
+                        markersize=20,
+                        zorder=5
+                    )
 
-                st.pyplot(fig)
-
+                    st.pyplot(fig)
 
 
             
