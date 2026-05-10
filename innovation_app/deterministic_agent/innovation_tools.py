@@ -722,13 +722,9 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
             relevant documents to users query and auxiliary documents related to the top locations and closest top locations when location information is present. 
             They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
             of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
-            When LQ scores are lower than 1 for some codes, you are expected to ALWAYS recommend top 3 specializations using the general specialized documents 
-            and also recommend closet top 3 specializations using the local specialized documents.
-            When you refer to those top 3 locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
-            Include distances in KM to your response to be transparent.
-            Do not include in the summary the quantiles, but only the relative position of the documents (e.g. top 1, top 2, top 3, etc.).
-            Do not include in the summary the LQ scores, but only if the region is specialized or not, and if not, recommend the closest specialized regions.
-            \n
+            You are expected to ALWAYS recommend top 3 specializations using the general specialized documents.
+            You are expected to recommend closet top 3 specializations using the local specialized documents ONLY if a region is selected and therefore local specialized documents are available.
+            When you refer to those the locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
 
             If the context is technology, give your summary from the market perspective (service, good).
             If the context is good or service, then give your summary from the technology perspective. 
@@ -736,7 +732,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
             
             Learn from the samples below, how to respond and organize the response:
 
-            In case LQ scores are presents, a sample response can be of the form, assuming context is service or good
+            A sample response can be of the form, assuming context is service or good and region is selected:
 
             **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus** 
             - The region is **not specialized** in this field.
@@ -767,7 +763,8 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
                 - Emilia-Romagna (Italy) with a distance of 540.74 km.
             
            
-            In case there is no region selected, it does not make sense to report whether the region is specialized in this field. A sample response can be of the form:
+            In case there is no region selected, it does not make sense to report whether the region is specialized in this field or mention closest locations. 
+            A sample response can be of the form:
             
             **Electric Household Appliances: Cooking, Heating, Drying, Food Preparation**
             - In Europe, the top 3 locations specialized in this field are:
@@ -781,7 +778,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
 
             2. A JSON object with the following structure:
                 title:
-                is_specialized: true/false, if region information isavailable
+                is_specialized: true/false, if region information is available
                 top_regions: [top_region1, top_region2, top_region3],
                 closest_regions: [closestregion1, closest_region2, closest_region3] if specialized information is available,
             

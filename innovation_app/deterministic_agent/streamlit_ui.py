@@ -7,7 +7,9 @@ from settings import *
 from datetime import datetime
 from innovation_tools import *
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from matplotlib.patches import Patch
+
 from huggingface_hub import hf_hub_download
 
 
@@ -26,7 +28,7 @@ The PAT2TM chatbot offers data-driven insights for practitioners, startups, and
 policymakers seeking to bridge inventions and market opportunities. By mapping
 technologies to goods and services, it helps identify diversification paths, niche
 market potentials, and strategic partnerships.
-            
+            import plotly.graph_objects as go
 You can explore the connections between technologies and markets in two ways:
 * Enter a technology to discover the goods and services it enables.
 * Enter a good or service to identify the technologies required for its development and market application.
@@ -296,46 +298,6 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                         key="map_topic_selector"
                     )
 
-                    view_mode = st.radio(
-                                "Show regions:",
-                                ["Top regions", "Closest regions"],
-                                horizontal=True,
-                                key="region_view_mode"
-                            )
-
-                    selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
-
-                    relevant_ids = selected_doc["global_code"]
-                    closest_ids = selected_doc["local_code"]
-
-                    nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
-                    nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
-
-                    source_nuts_label = st.session_state.get("selected_region")
-                    for entry in nuts2_meta:
-                        if entry['NUTS label'] == source_nuts_label:
-                            source_id = entry['NUTS Code']
-
-                    nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
-                    
-                    nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
-                    nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
-                    
-                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
-                    nuts_lb = nuts_lb[nuts_lb["STAT_LEVL_"] == 2]
-                    if view_mode == "Top regions":
-                        pin_ids = relevant_ids
-                    else:
-                        pin_ids = closest_ids
-
-                    pin_ids = pin_ids + [source_id]  # always include source
-
-                    pins_gdf = nuts_lb[nuts_lb["NUTS_ID"].isin(pin_ids)].copy()
-
-                    # Extract coordinates directly (no centroid needed!)
-                    pins_gdf["lon"] = pins_gdf.geometry.x
-                    pins_gdf["lat"] = pins_gdf.geometry.y
-
                     def categorize(nuts_id):
                         if nuts_id == source_id:
                             return 'Source'
@@ -350,51 +312,286 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                             if nuts_id in closest_ids:
                                 return 'Closest'
                             else:
-                                return 'Other'
-
-                    nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
-
-                    # Define the color mapping
-                    color_map = {
-                        'Source': 'red',
-                        'Relevant': 'blue',
-                        'Closest': 'green',
-                        'Other': '#eeeeee' # Light grey for context
-                    }
-
-                    # Plot
-                    fig, ax = plt.subplots(figsize=(10, 10))
-
-                    # Plot all regions with the mapping
-                    nuts2_gdf.plot(
-                        ax=ax, 
-                        categorical=True,
-                        legend=True,
-                        color=nuts2_gdf['category'].map(color_map), 
-                        edgecolor='black', 
-                        linewidth=0.5,
-                    )
+                                return 'Other'    
                     
+                    view_mode = st.radio(
+                                "Show regions:",
+                                ["Top regions", "Closest regions"],
+                                horizontal=True,
+                                key="region_view_mode"
+                            )
 
-                    legend_elements = [Patch(facecolor=color_map['Source'], edgecolor='black', label='Selected')]
+                    selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
+
+                    relevant_ids = selected_doc["global_code"]
+                    closest_ids = selected_doc["local_code"]
+
+                    nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
+                    nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
+                    
+                    relevant_regions = {}
+                    for entry in nuts2_meta:
+                        if entry['NUTS Code'] in relevant_ids:
+                            relevant_regions[entry['NUTS Code']] = entry['NUTS label'] 
+                    relevant_regions_df = pd.DataFrame(list(relevant_regions.items()), columns=['NUTS_ID', 'Description'])
+                    
+                    closest_regions = {}
+                    for entry in nuts2_meta:
+                        if entry['NUTS Code'] in closest_ids:
+                            closest_regions[entry['NUTS Code']] = entry['NUTS label'] 
+                    closest_regions_df = pd.DataFrame(list(closest_regions.items()), columns=['NUTS_ID', 'Description'])
+
+                    source_nuts_label = st.session_state.get("selected_region")
+                    for entry in nuts2_meta:
+                        if entry['NUTS label'] == source_nuts_label:
+                            source_id = entry['NUTS Code']
+                            source_label = entry['NUTS label']
+
+                    nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
+                    
+                    nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
+                    nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
+                    nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
+                    
+                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
+                    pins_gdf = nuts_lb[
+                    (nuts_lb["STAT_LEVL_"] == 2) &
+                    (nuts_lb["NUTS_ID"].isin(nuts2_codes))
+                ].copy()
+                    pins_gdf['category'] = pins_gdf['NUTS_ID'].apply(categorize)
+
+                    
+                    if view_mode == "Top regions":
+                        relevant_pins = pins_gdf[pins_gdf['category'] == 'Relevant']
+                        #merge relevant_pins with relevant_regions_df to get the description for the hover text
+                        relevant_pins = relevant_pins.merge(relevant_regions_df, left_on='NUTS_ID', right_on='NUTS_ID', how='left')
+                        #include source pin in relevant pins for the hover text
+                        source_pin = pins_gdf[pins_gdf['NUTS_ID'] == source_id]
+                        source_pin = source_pin.merge(pd.DataFrame({'NUTS_ID':[source_id], 'Description':[source_label]}), on='NUTS_ID', how='left')
+                        relevant_pins = pd.concat([relevant_pins, source_pin], ignore_index=True)
+
+                    else:
+                        closest_pins = pins_gdf[pins_gdf['category'] == 'Closest']
+                        #merge closest_pins with closest_regions_df to get the description for the hover text
+                        closest_pins = closest_pins.merge(closest_regions_df, left_on='NUTS_ID', right_on='NUTS_ID', how='left')
+                        #include source pin in closest pins for the hover text
+                        source_pin = pins_gdf[pins_gdf['NUTS_ID'] == source_id]
+                        source_pin = source_pin.merge(pd.DataFrame({'NUTS_ID':[source_id], 'Description':[source_label]}), on='NUTS_ID', how='left')
+                        closest_pins = pd.concat([closest_pins, source_pin], ignore_index=True)
+
+             
+                    # ---------------------------------------------------
+                    # Build GeoJSON
+                    # ---------------------------------------------------
+
+                    geojson_data = json.loads(nuts2_gdf.to_json()) 
+
+                    # ---------------------------------------------------
+                    # Create map
+                    # ---------------------------------------------------
+
+                    fig = go.Figure()
+
+                    # ---------------------------------------------------
+                    # Add polygons
+                    # ---------------------------------------------------
+
+                    fig.add_trace(
+                        go.Choropleth(
+                            geojson=geojson_data,
+
+                            featureidkey="properties.NUTS_ID",
+
+                            locations=nuts2_gdf["NUTS_ID"],
+
+                            z=[1] * len(nuts2_gdf),
+
+                            colorscale=[
+                                [0, "#e5e5e5"],
+                                [1, "#e5e5e5"]
+                            ],
+
+                            showscale=False,
+
+                            marker_line_color="black",
+                            marker_line_width=0.6,
+
+                            hovertext=nuts2_gdf["category"],
+
+                            hovertemplate=
+                                "<b>%{location}</b><br>%{hovertext}<extra></extra>"
+                        )
+                    )
+
+                    # ---------------------------------------------------
+                    # Add pins
+                    # ---------------------------------------------------
+
 
                     if view_mode == "Top regions":
-                        legend_elements.append(Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top'))
+                        # ---------------------------------------------------
+                        # Source pins
+                        # ---------------------------------------------------
+
+                        source_pins = relevant_pins[
+                            relevant_pins["category"] == "Source"
+                        ]
+
+                        fig.add_trace(
+                            go.Scattergeo(
+                                lon=source_pins["LON"],
+                                lat=source_pins["LAT"],
+
+                                mode="markers",
+
+                                text=source_pins["Description"],
+
+                                hovertemplate=
+                                    "<b>%{text}</b><extra></extra>",
+
+                                marker=dict(
+                                    size=16,
+                                    color="blue",
+                                    symbol="diamond"
+                                ),
+
+                                name="Selected region"
+                            )
+                        )
+
+        
+                        relevant_only = relevant_pins[
+                            relevant_pins["category"] == "Relevant"
+                        ]
+
+                        fig.add_trace(
+                            go.Scattergeo(
+                                lon=relevant_only["LON"],
+                                lat=relevant_only["LAT"],
+
+                                mode="markers",
+
+                                text=relevant_only["Description"],
+
+                                hovertemplate=
+                                    "<b>%{text}</b><extra></extra>",
+
+                                marker=dict(
+                                    size=14,
+                                    color="red",
+                                    symbol="diamond"
+                                ),
+
+                                name="Top regions"
+                            )
+                        )
                     else:
-                        legend_elements.append(Patch(facecolor=color_map['Closest'], edgecolor='black', label='Closest'))
+                        source_pins = closest_pins[closest_pins["category"] == "Source"]
 
-                    ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
+                        fig.add_trace(
+                            go.Scattergeo(
+                                lon=source_pins["LON"],
+                                lat=source_pins["LAT"],
 
+                                mode="markers",
 
-                    pins_gdf.plot(
-                        ax=ax,
-                        marker='^',
-                        color='black',
-                        markersize=20,
-                        zorder=5
+                                text=source_pins["Description"],
+
+                                hovertemplate=
+                                    "<b>%{text}</b><extra></extra>",
+
+                                marker=dict(
+                                    size=16,
+                                    color="blue",
+                                    symbol="diamond"
+                                ),
+
+                                name="Selected region"
+                            )
+                        )
+
+                        # ---------------------------------------------------
+                        # Closest pins
+                        # ---------------------------------------------------
+
+                        closest_only = closest_pins[closest_pins["category"] == "Closest"]
+
+                        fig.add_trace(
+                            go.Scattergeo(
+                                lon=closest_only["LON"],
+                                lat=closest_only["LAT"],
+
+                                mode="markers",
+
+                                text=closest_only["Description"],
+
+                                hovertemplate=
+                                    "<b>%{text}</b><extra></extra>",
+
+                                marker=dict(
+                                    size=14,
+                                    color="green",
+                                    symbol="diamond"
+                                ),
+
+                                name="Closest regions"
+                            )
+                        )
+                    # ---------------------------------------------------
+                    # Europe-only layout
+                    # ---------------------------------------------------
+
+                    fig.update_geos(
+                        scope="europe",
+
+                        projection_type="mercator",
+
+                        showcountries=True,
+                        countrycolor="white",
+
+                        showcoastlines=True,
+                        coastlinecolor="white",
+
+                        showland=True,
+                        landcolor="rgb(245,245,245)",
+
+                        lataxis_range=[34, 72],
+                        lonaxis_range=[-25, 45]
                     )
 
-                    st.pyplot(fig)
+                    # ---------------------------------------------------
+                    # Layout
+                    # ---------------------------------------------------
+
+                    fig.update_layout(
+                        height=800,
+                        width=800,
+
+                        margin=dict(
+                            l=0,
+                            r=0,
+                            t=0,
+                            b=0
+                        ),
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="top",
+                            y=-0.08,
+                            xanchor="center",
+                            x=0.5
+                        )
+                    )
+
+                    # ---------------------------------------------------
+                    # Show
+                    # ---------------------------------------------------
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True
+                    )
+
                 if not region:
                     titles = [content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()] #to remove the markdown formatting from the title
 
@@ -404,74 +601,158 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                         key="map_topic_selector"
                     )
 
+                    def categorize(nuts_id):
+                        if nuts_id in relevant_ids:
+                            return 'Relevant'
+                        return 'Other'
 
                     selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
-
+                    
                     relevant_ids = selected_doc["global_code"]
-
+                    #build relevant_regions dictionary with keys ids and values text
+                    
                     nuts2_meta = st.session_state.get("META_NUTS2_INDEX_KEY")
                     nuts2_codes = [entry['NUTS Code'] for entry in nuts2_meta]
-
+                    relevant_regions = {}
+                    for entry in nuts2_meta:
+                        if entry['NUTS Code'] in relevant_ids:
+                            relevant_regions[entry['NUTS Code']] = entry['NUTS label'] 
+                    relevant_regions_df = pd.DataFrame(list(relevant_regions.items()), columns=['NUTS_ID', 'Description'])
+                    
                     nuts_gdf = st.session_state.get("RG_SHAPEFILE_NUTS2_KEY")
                     
                     nuts2_gdf = nuts_gdf[nuts_gdf['STAT_LEVL_'] == 2]
                     nuts2_gdf = nuts2_gdf[nuts2_gdf['NUTS_ID'].isin(nuts2_codes)]
-                    
-                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
-                    nuts_lb = nuts_lb[nuts_lb["STAT_LEVL_"] == 2]
-                    pin_ids = relevant_ids
-
-                    pin_ids = pin_ids #there is no source region in this case, so we don't add any source id to the pins
-
-                    pins_gdf = nuts_lb[nuts_lb["NUTS_ID"].isin(pin_ids)].copy()
-
-                    # Extract coordinates directly (no centroid needed!)
-                    pins_gdf["lon"] = pins_gdf.geometry.x
-                    pins_gdf["lat"] = pins_gdf.geometry.y
-
-                    def categorize(nuts_id):
-
-                        if nuts_id in relevant_ids:
-                            return 'Relevant'
-                        else:
-                            return 'Other'
 
                     nuts2_gdf['category'] = nuts2_gdf['NUTS_ID'].apply(categorize)
-
-                    # Define the color mapping
-                    color_map = {
-                        'Relevant': 'blue',
-                        'Other': '#eeeeee' # Light grey for context
-                    }
-
-                    # Plot
-                    fig, ax = plt.subplots(figsize=(10, 10))
-
-                    # Plot all regions with the mapping
-                    nuts2_gdf.plot(
-                        ax=ax, 
-                        categorical=True,
-                        legend=True,
-                        color=nuts2_gdf['category'].map(color_map), 
-                        edgecolor='black', 
-                        linewidth=0.5,
-                    )
                     
+                    nuts_lb = st.session_state.get("LB_SHAPEFILE_NUTS2_KEY")
+                    pins_gdf = nuts_lb[
+                    (nuts_lb["STAT_LEVL_"] == 2) &
+                    (nuts_lb["NUTS_ID"].isin(nuts2_codes))
+                ].copy()
+                    pins_gdf['category'] = pins_gdf['NUTS_ID'].apply(categorize)
 
-                    legend_elements = [Patch(facecolor=color_map['Relevant'], edgecolor='black', label='Top')]
+                    relevant_pins = pins_gdf[pins_gdf['category'] == 'Relevant']
+                    #merge relevant_pins with relevant_regions_df to get the description for the hover text
+                    relevant_pins = relevant_pins.merge(relevant_regions_df, left_on='NUTS_ID', right_on='NUTS_ID', how='left')
+            
+                    # ---------------------------------------------------
+                    # Build GeoJSON
+                    # ---------------------------------------------------
 
-                    ax.legend(handles=legend_elements, loc='lower left',ncol=4,frameon=False,title=None )
+                    geojson_data = json.loads(nuts2_gdf.to_json()) 
 
+                    # ---------------------------------------------------
+                    # Create map
+                    # ---------------------------------------------------
 
-                    pins_gdf.plot(
-                        ax=ax,
-                        marker='^',
-                        color='black',
-                        markersize=20,
-                        zorder=5
+                    fig = go.Figure()
+
+                    # ---------------------------------------------------
+                    # Add polygons
+                    # ---------------------------------------------------
+
+                    fig.add_trace(
+                        go.Choropleth(
+                            geojson=geojson_data,
+
+                            featureidkey="properties.NUTS_ID",
+
+                            locations=nuts2_gdf["NUTS_ID"],
+
+                            z=[1] * len(nuts2_gdf),
+
+                            colorscale=[
+                                [0, "#e5e5e5"],
+                                [1, "#e5e5e5"]
+                            ],
+
+                            showscale=False,
+
+                            marker_line_color="black",
+                            marker_line_width=0.6,
+
+                            hovertext=nuts2_gdf["category"],
+
+                            hovertemplate=
+                                "<b>%{location}</b><br>%{hovertext}<extra></extra>"
+                        )
                     )
 
-                    st.pyplot(fig)
+                    # ---------------------------------------------------
+                    # Add pins
+                    # ---------------------------------------------------
+
+                    fig.add_trace(
+                        go.Scattergeo(
+                            lon=relevant_pins["LON"],
+                            lat=relevant_pins["LAT"],
+
+                            mode="markers",
+
+                            text=relevant_pins["Description"],
+
+                            hovertemplate=
+                                "<b>%{text}</b><extra></extra>",
+
+                            marker=dict(
+                                size=14,
+                                color="red",
+                                symbol="diamond"
+                            ),
+
+                            name="Relevant regions"
+                        )
+                    )
+
+                    # ---------------------------------------------------
+                    # Europe-only layout
+                    # ---------------------------------------------------
+
+                    fig.update_geos(
+                        scope="europe",
+
+                        projection_type="mercator",
+
+                        showcountries=True,
+                        countrycolor="white",
+
+                        showcoastlines=True,
+                        coastlinecolor="white",
+
+                        showland=True,
+                        landcolor="rgb(245,245,245)",
+
+                        lataxis_range=[34, 72],
+                        lonaxis_range=[-25, 45]
+                    )
+
+                    # ---------------------------------------------------
+                    # Layout
+                    # ---------------------------------------------------
+
+                    fig.update_layout(
+                        height=800,
+                        width=800,
+
+                        margin=dict(
+                            l=0,
+                            r=0,
+                            t=0,
+                            b=0
+                        )
+                    )
+
+                    # ---------------------------------------------------
+                    # Show
+                    # ---------------------------------------------------
+
+                    st.plotly_chart(
+                        fig,
+                        use_container_width=True
+                    )
+
 
 
             
