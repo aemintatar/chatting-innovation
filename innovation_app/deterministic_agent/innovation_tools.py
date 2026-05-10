@@ -445,6 +445,8 @@ def scoring_documents() -> dict:
         if selected_region:
             results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
+            #drop the duplicate codes
+            results = results.drop_duplicates(subset=['Nice_subclass'], keep='first')
         else:
             results = selected_meta_df[['Nice_subclass','Nice_subclass_keyword','Nice_subclass_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'Nice_subclass_label_cleaned':'Nice_subclass_label'})
@@ -454,6 +456,8 @@ def scoring_documents() -> dict:
         if selected_region:
             results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'}) 
+            #drop the duplicate codes
+            results = results.drop_duplicates(subset=['CPC_4digit'], keep='first')
         else:
             results = selected_meta_df[['CPC_4digit','CPC_4digit_label_cleaned','Zij',lq_variable,'Quantiles']]
             results = results.rename(columns={'CPC_4digit_label_cleaned':'CPC_4digit_label'})
