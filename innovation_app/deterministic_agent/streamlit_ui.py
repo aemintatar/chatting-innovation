@@ -59,6 +59,7 @@ def load_all_data_from_drive():
 
     REPO_ID = "atatar/innovation_data"
 
+
     HF_FILES = {
         "META_ALL_INDEX_PATH": "allmetadata.pkl",  
         "FAISS_TECH_INDEX_PATH": "faiss_tech_index.bin",

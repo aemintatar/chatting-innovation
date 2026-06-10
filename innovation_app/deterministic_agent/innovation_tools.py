@@ -629,6 +629,7 @@ def specialized_regions():  #per_document_version
     ]
 
 
+
     specialized_with_distance = specialized_regions.merge(
         distance_df,
         left_on="nuts2_code",
