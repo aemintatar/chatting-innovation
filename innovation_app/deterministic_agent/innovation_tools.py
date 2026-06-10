@@ -591,7 +591,6 @@ def specialized_regions():  #per_document_version
     region_list = pd.DataFrame(st.session_state.get("META_NUTS2_INDEX_KEY"))
     selected_code = region_list['NUTS Code'][region_list['NUTS label']==selected_region].values[0] #finds the NUTS2 code of the region
 
-
     distance_df = pd.DataFrame(st.session_state['META_DISTANCE_INDEX_KEY'])
     distance_df = distance_df[distance_df['nuts2_1'] == selected_code]
     if context == 'technology':
@@ -614,7 +613,7 @@ def specialized_regions():  #per_document_version
     weak_codes = weak_docs[code_variable].tolist()
 
     target_codes = list(set(weak_codes + filtered_codes))
-   
+
     #highest LQ and highest LQ with shortest distance
     candidate_regions = lq_metadata[lq_metadata[lq_code_variable].isin(target_codes)]
     
@@ -684,19 +683,23 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
     selected_df = st.session_state.get("selected_docs")
     general_specialized_df = st.session_state.get("general_specialized")
     local_specialized_df = st.session_state.get("local_specialized")
+
     #general_specialized_documents = general_specialized_df.to_dict(orient='records')
     #local_specialized_documents = local_specialized_df.to_dict(orient='records')
 
     summary = {}
+
     #Complete this for loop.
     for i,r in selected_df.iterrows():
         temp = {}
+
         #create the user text
         if context.lower() == 'technology':
             lq_variable = 'market_lq'
             lq_code_variable = 'Nice_subclass'
             code_variable = 'Nice_subclass'
             code = r[lq_code_variable]
+            title = r['Nice_subclass_label']
             if region:
                 text_df = r[['Nice_subclass_keyword','Nice_subclass_label','market_lq','Quantiles']]
                 general_specialized_documents = general_specialized_df[general_specialized_df[lq_code_variable] == code].to_dict(orient='records')
@@ -710,6 +713,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
             lq_code_variable = 'cpc'
             code_variable = 'CPC_4digit'
             code = r[code_variable]
+            title = r['CPC_4digit_label']
             if region:
                 text_df = r[['CPC_4digit_label','tech_lq','Quantiles']]
                 general_specialized_documents = general_specialized_df[general_specialized_df[lq_code_variable] == code].to_dict(orient='records')
@@ -722,39 +726,59 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
 
         text = text_df.to_dict()
 
-        user_message = f'''Summarize the following content which represents the most 
-            relevant documents to users query and auxiliary documents related to the top locations and closest top locations when location information is present. 
-            They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
-            of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
-            You are expected to ALWAYS recommend top 3 specializations using the general specialized documents.
-            You are expected to recommend closet top 3 specializations using the local specialized documents ONLY if a region is selected and therefore local specialized documents are available.
-            When you refer to those the locations do not refer to them using their NUTS2 code or country names. Use ONLY their region/nuts2 names as known in public. 
+        user_message = f"""
+        You are a structured analytical summarizer.
 
-            If the context is technology, give your summary from the market perspective (service, good).
-            If the context is good or service, then give your summary from the technology perspective. 
-            However, in your repsonse do not state your perspective. 
+        You MUST strictly follow all instructions. Do not add, remove, or infer information beyond the provided inputs.
+
+        -------------------------
+        INPUTS
+        -------------------------
+        Context: {context}
+        Region (optional): {region}
+        General specialized documents: {general_specialized_documents}
+        Local specialized documents (may be empty): {local_specialized_documents}
+        Title: {title}
+
+        -------------------------
+        HARD CONSTRAINTS (DO NOT VIOLATE)
+        -------------------------
+        1. Always use official region/NUTS2 names as provided in the data. Never use alternative geographic labels.
+        2. Closest regions MUST come ONLY from local_specialized_documents AND MUST ALWAYS include the distance information to the region.
+        3. General top regions MUST come ONLY from general_specialized_documents.
+        4. NEVER include LQ values in the summary. They are for your internal use only to determine specialization status and closest regions.
+        5. ONLY one summary per title.
+        6. NEVER modify the title. Use it as is in the input.
+
+        -------------------------
+        TASK
+        -------------------------
+        Summarize the following content which represents the most 
+        relevant documents to users query and auxiliary documents related to the top locations and closest top locations when location information is present. 
+        They contain the quantiles obtained from the scores representing the relationships between CPC codes and Nice codes, LQ scores representing the strength 
+        of the region's specialization in that field. If LQ score is higher from 1, then that region is specialized in that field.
             
-            Learn from the samples below, how to respond and organize the response:
+        Learn from the samples below, how to respond and organize the response:
 
-            A sample response can be of the form, assuming context is service or good and region is selected:
-
+        In case region is provided, a sample response can be of the form, assuming context is service or good and the region is Burgenland in Austria:
+            Sample1:
             **Rental and Hire Services: Construction Equipment, Cleaning Machines, Industrial Apparatus** 
             - The region is **not specialized** in this field.
             - In Europe, the top 3 locations specialized in this field are
                 - Île de France (France)
             - The loacation above is also the closest in this filed with a distance of 1050.04 km to Burgenland.
-
+            Sample2:
             **Power-Operated Machines and Appliances: Food Processing, Kitchen Tasks, Industrial Applications**
             - The region is **specialized** in this field.
             - In Europe, the top 3 locations specialized in this field are:
                 - Cataluña (Spain)
                 - Toscana (Italy)
                 - Freiburg (Germany)
-            - The closest top 3 specialized locations to the region are:
+            - The closest top 3 specialized locations to Burgenland are:
                 - Freiburg (Germany) with a distance of 1494.17 km,
                 - Piemonte (Italy) with a distance of 1765.02 km,
                 - Toscana (Italy) with a distance of 1781.14 km.
-
+            Sample3:
             **Pumps, Compressors, Blowers, Air Handling Equipment: Industrial and Mechanical Applications**
             - The region is **not specialized** in this field. 
             - In Europe, the top 3 locations specialized in this field are:
@@ -767,35 +791,14 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
                 - Emilia-Romagna (Italy) with a distance of 540.74 km.
             
            
-            In case there is no region selected, it does not make sense to report whether the region is specialized in this field or mention closest locations. 
-            A sample response can be of the form:
-            
-            **Electric Household Appliances: Cooking, Heating, Drying, Food Preparation**
-            - In Europe, the top 3 locations specialized in this field are:
-                - Nordwestschweiz (Switzerland)
-                - Alsace (France)
-                - Valle d'Aosta/Vallée d'Aoste (Italy)
-            
-            Return your response in TWO parts:
-
-            1. A human-readable summary as in the samples above
-
-            2. A JSON object with the following structure:
-                title:
-                is_specialized: true/false, if region information is available
-                top_regions: [top_region1, top_region2, top_region3],
-                closest_regions: [closestregion1, closest_region2, closest_region3] if specialized information is available,
-            
-
-
-            Return ONLY valid JSON for part 2. Do not include explanations inside the JSON.
-            Split the two responses with a clear separator using "### JSON ###" in between.
-            Here are the documents needed for the summary:
-            Context: {context}
-            Collection of documents: {text}
-            General specialized documents: {general_specialized_documents}
-            Local specialized documents: {local_specialized_documents}
-            '''
+            In case there is no region selected, it does not make sense to report whether the region is specialized in this field. A sample response can be of the form:
+                Sample4:
+                **Electric Household Appliances: Cooking, Heating, Drying, Food Preparation**
+                - In Europe, the top 3 locations specialized in this field are:
+                    - Nordwestschweiz (Switzerland)
+                    - Alsace (France)
+                    - Valle d'Aosta/Vallée d'Aoste (Italy)
+        """
             
 
         # Generate the summary
@@ -815,7 +818,11 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
         temp['global_code'] = [doc['nuts2_code'] for doc in general_specialized_documents]
         summary.update({code: temp})
     st.session_state['summary'] = summary
-    text = f"From the {context} perspective the summary is as follows:\n\n"
+    if context.lower() in ['good','service']:
+        context_complement = 'technology'
+    else:
+        context_complement = 'market'
+    text = f"From the {context_complement} perspective the summary is as follows:\n\n"
     for code, content in summary.items():
         text += content['text'] + '\n\n'
     summary_text = (

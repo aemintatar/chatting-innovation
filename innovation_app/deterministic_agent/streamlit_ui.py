@@ -259,7 +259,8 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
 
     st.markdown("### Summarize selected documents")
     st.write("You can generate summaries for the selected documents.")
-
+    context = st.session_state.get("detected_context", "Not specified")
+    selected_df = st.session_state.get("selected_docs")
     if st.button("📝 Generate summary"):
         with st.spinner("Generating summary... Please wait."):
             if st.session_state.get("selected_region"):
@@ -320,7 +321,6 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                                 horizontal=True,
                                 key="region_view_mode"
                             )
-
                     selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
 
                     relevant_ids = selected_doc["global_code"]
@@ -605,6 +605,9 @@ if len(st.session_state.get("selected_docs",[])) > 0 and len(st.session_state.ge
                         if nuts_id in relevant_ids:
                             return 'Relevant'
                         return 'Other'
+
+                    print(selected_title)
+                    print([content["text"].split('\n')[0][2:-2] for code,content in summary_json.items()]) 
 
                     selected_doc = next(content for code,content in summary_json.items() if content["text"].split('\n')[0][2:-2] == selected_title)
                     
