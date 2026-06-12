@@ -21,15 +21,13 @@ st.title("Chatting Innovation") # Main title of the app.
 st.subheader("Bridging Invention and Market Innovation")
 st.markdown("""
             The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
-Abbasiharofteh, Castaldi, and Petralia (2025 &amp; forthcoming), which establishes a
+Abbasiharofteh, Castaldi, and Petralia (2025 &amp; 2026), which establishes a
 comprehensive concordance between patent and trademark classes.
             
 The PAT2TM chatbot offers data-driven insights for practitioners, startups, and
 policymakers seeking to bridge inventions and market opportunities. By mapping
 technologies to goods and services, it helps identify diversification paths, niche
-market potentials, and strategic partnerships.
-            import plotly.graph_objects as go
-You can explore the connections between technologies and markets in two ways:
+market potentials, and strategic partnerships. You can explore the connections between technologies and markets in two ways:
 * Enter a technology to discover the goods and services it enables.
 * Enter a good or service to identify the technologies required for its development and market application.
 
@@ -41,12 +39,11 @@ trademark concordance.
 “Drones”, try “Drone Power System” or “Drone Flight Controller” for more accurate
 and meaningful associations.
 If you use the PAT2TM chatbot or related data, please cite:
+* Abbasiharofteh, M., Castaldi, C., & Petralia, S. (2026). 
+A concordance between patent and trademark classes to link technologies to markets. Scientific Data.
 * Abbasiharofteh, Milad; Castaldi, Carolina; Petralia, Sergio (2025). From
 technologies to markets: A concordance between patent and trademark
 classes. , https://doi.org/10.7910/DVN/JD7JIL, Harvard Dataverse, V1
-* Abbasiharofteh, Milad; Castaldi, Carolina; Petralia, Sergio (forthcoming). From
-technologies to markets: A concordance between patent and trademark
-classes. Scientific Data.
 * Abbasiharofteh, Milad; Tatar, Emin (forthcoming). Chatting Innovation:
 Bridging Invention and Market Innovation. arXiv preprint arXiv:xxx.xxx.""")
                     
