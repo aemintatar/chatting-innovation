@@ -19,6 +19,8 @@ from huggingface_hub import hf_hub_download
 st.set_page_config(page_title="Chatting Innovation\\Bridging Invention and Market Innovation", layout="wide") # Configures the browser tab title and page layout.
 st.title("Chatting Innovation") # Main title of the app.
 st.subheader("Bridging Invention and Market Innovation")
+#update abot the LLM
+st.markdown("""Last Update: 21 June 2026: The server that deploys the Mistral model that powers this chatbot is under maintenance. We are working to resolve the issue as soon as possible. In the meantime, you can explore the data and documentation related to the PAT2TM concordance on our [GitHub repository](https://github.com/atatar/innovation_data) """)
 st.markdown("""
             The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
 Abbasiharofteh, Castaldi, and Petralia (2025 &amp; 2026), which establishes a
