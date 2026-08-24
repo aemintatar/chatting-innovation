@@ -20,9 +20,10 @@ st.set_page_config(page_title="Chatting Innovation\\Bridging Invention and Marke
 st.title("Chatting Innovation") # Main title of the app.
 st.subheader("Bridging Invention and Market Innovation")
 #update about the LLM
-st.warning("The LLM backend is currently unavailable. You can use the rest of the features while we work on restoring it. Please try again later.(last updated: 2026-08-03)")
+st.warning("The LLM backend is currently available. We switched from Mistral to QWEN(last updated: 2026-08-24)")
+#st.warning("The LLM backend is currently unavailable. You can use the rest of the features while we work on restoring it. Please try again later.(last updated: 2026-08-03)")
 st.markdown("""
-            The PAT2TM chatbot, powered by Mistral and Streamlit, builds on the work of
+            The PAT2TM chatbot, powered by QWEN and Streamlit, builds on the work of
 Abbasiharofteh, Castaldi, and Petralia (2025 &amp; 2026), which establishes a
 comprehensive concordance between patent and trademark classes.
             

@@ -804,7 +804,7 @@ def summarize_documents() -> tuple[str, bytes]: #per_document_version
 
         # Generate the summary
         response = client.chat.completions.create(
-            model=MODEL,
+            model="Qwen/Qwen3-VL-30B-A3B-Instruct-FP8",
             messages=[
                 {"role": "system", "content": "You are an analytical research assistant that writes structured, concise summaries."},
                 {"role": "user", "content": user_message}
